@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Фильтр транзакций</h2>
+
+    <div class="card shadow-sm mb-5">
+        <div class="card-body">
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        <p class="mb-0">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="get" novalidate>
+                {% csrf_token %}
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-2 col-md-4 col-sm-6">
+                        {{ form.period.label_tag }}
+                        {{ form.period }}
+                        {% if form.period.errors %}
+                            <div class="text-danger small mt-1">{{ form.period.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-12" id="date-range-container" style="display: none;">
+                        <div class="row g-3">
+                            <div class="col-lg-2 col-md-4 col-sm-6">
+                                {{ form.date_from.label_tag }}
+                                {{ form.date_from }}
+                                {% if form.date_from.errors %}
+                                    <div class="text-danger small mt-1">{{ form.date_from.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-lg-2 col-md-4 col-sm-6">
+                                {{ form.date_to.label_tag }}
+                                {{ form.date_to }}
+                                {% if form.date_to.errors %}
+                                    <div class="text-danger small mt-1">{{ form.date_to.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-2 col-md-4 col-sm-6">
+                        {{ form.operation_type.label_tag }}
+                        {{ form.operation_type }}
+                        {% if form.operation_type.errors %}
+                            <div class="text-danger small mt-1">{{ form.operation_type.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-lg-2 col-md-4 col-sm-6">
+                        <button type="submit" class="btn btn-primary w-100">Применить</button>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-sm-6">
+                        <a href="{% url 'add_transaction' %}" class="btn btn-primary w-100">
+                            Добавить транзакцию
+                        </a>
+                    </div>
+
+
+
+                </div>
+
+                <!-- Шаблон для выбора категорий -->
+                <div class="mt-4 pt-3 border-top">
+                    <label class="form-label fw-semibold">{{ form.category.label }}</label>
+
+                    <div class="d-flex flex-wrap gap-2">
+                            {% for category in form.category.field.queryset %}
+                                <label class="badge category-badge rounded-pill px-3 py-2
+                                    {% if category.pk|stringformat:'s' in form.category.value %}
+                                        bg-primary text-white
+                                    {% else %}
+                                        bg-light text-dark border
+                                    {% endif %}"
+                                       data-category-id="{{ category.pk }}">
+                                    <input type="checkbox"
+                                           name="{{ form.category.name }}"
+                                           value="{{ category.pk }}"
+                                           {% if category.pk|stringformat:'s' in form.category.value %}checked{% endif %}
+                                           class="category-checkbox d-none">
+                                    <span>{{ category.name }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+
+
+                    {% if form.category.errors %}
+                        <div class="text-danger small mt-2">{{ form.category.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Список транзакций -->
+    <h3 class="mb-3">Транзакции</h3>
+
+        {% if transactions %}
+        <div class="list-group shadow-sm">
+            {% for t in transactions %}
+                <div class="list-group-item d-flex justify-content-between align-items-center py-3 rounded mb-2 hover-shadow">
+                <!-- Левая часть -->
+                <a href="{% url 'edit_transaction' t.pk %}" class="text-decoration-none text-dark flex-grow-1">
+                    <strong>{{ t.category.name }}</strong> — {{ t.description|default:"Без описания" }}
+                    <br>
+                    <small class="text-muted">{{ t.date|date:"d.m.Y" }}</small>
+                </a>
+
+                <!-- Правая часть (сумма + кнопки) -->
+                <div class="d-flex align-items-center gap-3">
+
+                    <!-- Сумма -->
+                    <div class="{% if t.operation_type == 'income' %}text-success{% else %}text-danger{% endif %} fw-bold fs-5">
+                        {% if t.operation_type == 'income' %}+{% else %}−{% endif %}{{ t.total|floatformat:0 }} ₽
+                    </div>
+
+                    <!-- Кнопка редактирования -->
+                    <a href="{% url 'edit_transaction' t.pk %}"
+                       class="text-primary fs-5"
+                       title="Редактировать">
+                        <i class="fas fa-pencil-alt"></i>
+                    </a>
+
+                    <!-- Кнопка удаления -->
+                    <form method="post" action="{% url 'delete_transaction' t.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="btn p-0 border-0 bg-transparent text-danger fs-5"
+                                title="Удалить"
+                                onclick="return confirm('Удалить транзакцию?');">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5 text-muted">
+            <p class="lead">Нет транзакций за выбранный период</p>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'personal_finance/css/styles.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'personal_finance/js/transactions_filter.js' %}"></script>
+
+<script src="{% static 'personal_finance/js/transactions_category_btn.js' %}"></script>
+
+{% endblock %}

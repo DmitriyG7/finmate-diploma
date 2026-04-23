@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Редактировать транзакцию{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm p-4 rounded-3">
+                <h2 class="card-title text-center mb-4 fw-bold">Редактировать транзакцию</h2>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <!-- Дата -->
+                    <div class="mb-3">
+                        <label for="id_date" class="form-label fw-semibold">Дата</label>
+                        {{ form.date|add_class:"form-control" }}
+                        {% if form.date.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.date.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Описание -->
+                    <div class="mb-3">
+                        <label for="id_description" class="form-label fw-semibold">Описание</label>
+                        {{ form.description|add_class:"form-control" }}
+                        {% if form.description.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.description.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Сумма -->
+                    <div class="mb-3">
+                        <label for="id_total" class="form-label fw-semibold">Сумма</label>
+                        {{ form.total|add_class:"form-control" }}
+                        {% if form.total.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.total.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Тип операции -->
+                    <div class="mb-3">
+                        <label for="id_operation_type" class="form-label fw-semibold">Тип операции</label>
+                        {{ form.operation_type|add_class:"form-select" }}
+                        {% if form.operation_type.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.operation_type.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Категория -->
+                    <div class="mb-4">
+                        <label for="id_category" class="form-label fw-semibold">{{ form.category.label }}</label>
+                        {{ form.category|add_class:"form-select" }}
+                        {% if form.category.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.category.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-lg px-5 me-3">Сохранить</button>
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-lg px-5">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'personal_finance/css/styles.css' %}">
+<style>
+    .category-badge {
+        transition: all 0.2s ease;
+        cursor: pointer;
+        user-select: none;
+    }
+    .category-badge:hover {
+        transform: scale(1.05);
+    }
+</style>
+{% endblock %}

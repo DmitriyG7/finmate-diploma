@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% block content %}
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card shadow-lg p-4" style="width: 380px; border-radius: 16px;">
+        <h3 class="text-center mb-4">Войти</h3>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger py-2">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            {% for f in form %}
+                <div class="mb-3">
+                    <label class="form-label" for="{{ f.id_for_label }}">{{ f.label }}</label>
+                    {{ f|add_class:"form-control" }}
+                    {% if f.errors %}
+                        <div class="text-danger small">{{ f.errors }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <button class="btn btn-primary w-100 mt-2" type="submit">Войти</button>
+
+            <div class="text-center mt-3">
+                <a href="{% url 'users:password_reset' %}" class="text-decoration-none">Забыли пароль?</a>
+            </div>
+
+            <div class="text-center mt-2">
+                <small>Нет аккаунта?
+                    <a href="{% url 'users:register' %}" class="text-decoration-none">Создать</a>
+                </small>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+{% endblock %}

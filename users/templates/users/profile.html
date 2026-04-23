@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card shadow-sm p-4 mx-auto" style="border-radius: 14px; max-width: 700px;">
+
+        <h3 class="text-center mb-4">Профиль</h3>
+
+        <form method="post" enctype="multipart/form-data" id="profile-form">
+            {% csrf_token %}
+
+            <!-- Аватар с иконкой -->
+            <div class="text-center mb-4 position-relative" style="max-width: 220px; margin: 0 auto;">
+                <!-- Контейнер аватара -->
+                <div class="avatar-container"
+                     style="
+                        width: 220px;
+                        height: 220px;
+                        border-radius: 12px;
+                        overflow: hidden;
+                        border: 2px solid #e0e0e0;
+                        position: relative;">
+
+                    <!-- Изображение аватара -->
+                    {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}"
+                             class="img-fluid w-100 h-100"
+                             style="object-fit: cover;"
+                             alt="Аватар">
+                    {% else %}
+                        <img src="{{ DEFAULT_AVATAR }}"
+                             class="img-fluid w-100 h-100"
+                             style="object-fit: cover;"
+                             alt="Аватар по умолчанию">
+                    {% endif %}
+
+                    <!-- Иконка камеры (появляется в правом нижнем углу) -->
+                    <label for="id_avatar"
+                           class="avatar-icon"
+                           style="
+                              position: absolute;
+                              bottom: 8px;
+                              right: 8px;
+                              width: 40px;
+                              height: 40px;
+                              border-radius: 50%;
+                              background-color: rgba(0, 0, 0, 0.6);
+                              display: flex;
+                              align-items: center;
+                              justify-content: center;
+                              cursor: pointer;
+                              z-index: 2;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="white" class="bi bi-pencil-square" viewBox="0 0 16 16">
+  <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+  <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+</svg>
+                    </label>
+                </div>
+
+                <!-- Скрытый input для загрузки -->
+                <input type="file"
+                       id="id_avatar"
+                       name="avatar"
+                       onchange="document.getElementById('profile-form').submit();"
+                       style="display: none;"
+                       accept="image/*">
+            </div>
+
+            <!-- Остальные поля формы -->
+            <div class="row g-3">
+                {% for field in form %}
+                    {% if field.name != 'avatar' %}
+                        <div class="col-md-6">
+                            <label for="{{ field.id_for_label }}" class="form-label small text-muted">
+                                {{ field.label }}
+                            </label>
+                            {% render_field field class="form-control" %}
+                            {% if field.errors %}
+                                <div class="text-danger small mt-1">{{ field.errors }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 mt-4">
+                Сохранить изменения
+            </button>
+        </form>
+
+        <hr class="my-4">
+
+        <a href="{% url 'users:password_change' %}" class="btn btn-outline-secondary w-100 mb-2">
+            Изменить пароль
+        </a>
+
+        <form method="post" action="{% url 'users:logout' %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger w-100">
+                Выйти
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
