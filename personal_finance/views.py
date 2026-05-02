@@ -1,18 +1,20 @@
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
-from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
-from django.views.generic import DetailView, CreateView, UpdateView, DeleteView
+from django.views.generic import DetailView, CreateView, UpdateView, DeleteView, ListView, FormView
 from django.urls import reverse_lazy
-from .forms import TransactionUserForm, AddTransactionForm, UpdateTransactionForm, GraphicForm
-from .models import PersonalTransaction, Category
+from .forms import TransactionUserForm, AddTransactionForm, UpdateTransactionForm, GraphicForm, CreateWalletForm, \
+    UpdateWalletForm, TransferForm
+from .models import PersonalTransaction, Category, Wallet
 from django.db.models import Sum, Count
 import json
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from datetime import timedelta
+from django.contrib import messages
+
+from personal_finance.services.finance_service import FinanceService
 
 
 @login_required
@@ -65,10 +67,32 @@ class AddTransaction(LoginRequiredMixin, CreateView):
     template_name = 'personal_finance/add_transaction.html'
     success_url = reverse_lazy('home')
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
-        obj = form.save(commit=False)
-        obj.user = self.request.user
-        return super().form_valid(form)
+        cd = form.cleaned_data
+
+        try:
+            FinanceService.create_transaction(
+                user=self.request.user,
+                wallet_id=cd["wallet"].id if cd.get("wallet") else None,
+                amount=cd["total"],
+                operation_type=cd["operation_type"],
+                category=cd["category"],
+                description=cd.get("description", ""),
+                date = cd.get("date"),
+            )
+
+        except ValidationError as e:
+            form.add_error(None, e.message if hasattr(e, "message") else str(e))
+            return self.form_invalid(form)
+        except Exception as e:
+            form.add_error(None, f"Ошибка операции: {str(e)}")
+            return self.form_invalid(form)
+        return redirect(self.success_url)
 
 
 class UpdateTransaction(LoginRequiredMixin, UpdateView):
@@ -77,9 +101,31 @@ class UpdateTransaction(LoginRequiredMixin, UpdateView):
     template_name = 'personal_finance/edit_transaction.html'
     success_url = reverse_lazy('home')
 
+
     def get_queryset(self):
         qs = super().get_queryset()
         return qs.filter(user=self.request.user)
+
+    def form_valid(self, form):
+        cd = form.cleaned_data
+
+        try:
+            FinanceService.update_transaction(
+                transaction_obj=self.object,
+                new_total=cd.get('total'),
+                new_date=cd.get('date'),
+                new_category=cd.get('category'),
+                new_wallet=cd.get('wallet'),
+                new_description=cd.get('description')
+            )
+            messages.success(self.request, "Транзакция успешно обновлена!")
+        except ValidationError as e:
+            form.add_error(None, e.message if hasattr(e, "message") else str(e))
+            return self.form_invalid(form)
+        except Exception as e:
+            form.add_error(None, f"Ошибка операции: {str(e)}")
+            return self.form_invalid(form)
+        return redirect(self.success_url)
 
 
 class DeleteTransaction(LoginRequiredMixin, DeleteView):
@@ -89,6 +135,20 @@ class DeleteTransaction(LoginRequiredMixin, DeleteView):
     def get_queryset(self):
         qs = super().get_queryset()
         return qs.filter(user=self.request.user)
+
+    def form_valid(self, form):
+        try:
+            FinanceService.delete_transaction(
+                transaction_obj=self.object
+            )
+            messages.success(self.request, "Транзакция успешно удалена, баланс обновлен")
+        except ValidationError as e:
+            messages.error(self.request, str(e))
+        except Exception as e:
+            form.add_error(None, f"Ошибка операции: {str(e)}")
+            return self.form_invalid(form)
+
+        return redirect(self.success_url)
 
 
 @login_required
@@ -138,7 +198,7 @@ def analytics_view(request):
         )
 
         chart_data = [
-            {"category": item["category__name"], "total": float(item["total"])}
+            {"category": item["category__name"], "total": float(item["total"] or 0)}
             for item in aggregation_data
         ]
 
@@ -151,3 +211,139 @@ def analytics_view(request):
     }
 
     return render(request, 'personal_finance/analytics.html', context)
+
+# -----------------------------------
+
+class CreateWallet(LoginRequiredMixin, CreateView):
+    model = Wallet
+    form_class = CreateWalletForm
+    template_name='personal_finance/wallet_form.html'
+    success_url = reverse_lazy('wallet_list')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        cd = form.cleaned_data
+        try:
+            FinanceService.create_wallet(
+                user=self.request.user,
+                name=cd["name"],
+                wallet_type=cd["wallet_type"],
+                balance=cd["balance"],
+                currency=cd["currency"],
+                is_default=cd["is_default"]
+            )
+            messages.success(self.request, f"Кошелек '{cd['name']}' успешно создан!")
+
+        except ValidationError as e:
+            form.add_error(None, e.message if hasattr(e, "message") else str(e))
+            return self.form_invalid(form)
+        except Exception as e:
+            form.add_error(None, f"Ошибка операции: {str(e)}")
+            return self.form_invalid(form)
+        return redirect(self.success_url)
+
+
+class WalletUpdateView(LoginRequiredMixin, UpdateView):
+    model = Wallet
+    form_class = UpdateWalletForm
+    template_name = 'personal_finance/wallet_form.html'
+    success_url = reverse_lazy('wallet_list')
+
+    def get_queryset(self):
+        return Wallet.objects.filter(user=self.request.user, is_active=True)
+
+    def form_valid(self, form):
+        cd = form.cleaned_data
+
+        try:
+            FinanceService.update_wallet(
+                wallet=self.object,
+                name=cd["name"],
+                is_default=cd["is_default"]
+            )
+            messages.success(self.request, f"Кошелек '{cd['name']}' успешно обновлен!")
+        except ValidationError as e:
+            form.add_error(None, e.message if hasattr(e, "message") else str(e))
+            return self.form_invalid(form)
+        except Exception as e:
+            form.add_error(None, f"Ошибка операции: {str(e)}")
+            return self.form_invalid(form)
+
+        return redirect(self.success_url)
+
+
+class WalletDeleteView(LoginRequiredMixin, DeleteView):
+    model = Wallet
+    success_url = reverse_lazy('wallet_list')
+
+    def get_queryset(self):
+        return Wallet.objects.filter(user=self.request.user, is_active=True)
+
+    def form_valid(self, form):
+        try:
+            FinanceService.delete_wallet(
+                wallet=self.object
+            )
+            messages.success(self.request, "Кошелек успешно удален.")
+        except ValidationError as e:
+            messages.error(self.request, str(e))
+        except Exception as e:
+            form.add_error(None, f"Ошибка операции: {str(e)}")
+            return self.form_invalid(form)
+
+        return redirect(self.success_url)
+
+
+
+class UserWalletsList(LoginRequiredMixin, ListView):
+    model = Wallet
+    context_object_name = 'wallets'
+    template_name = 'personal_finance/wallets_list.html'
+    paginate_by = 5
+
+    def get_queryset(self):
+        qs = (Wallet.objects.filter(user=self.request.user, is_active=True)
+        .order_by('-is_default'))
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        full_qs = self.get_queryset()
+        total = full_qs.aggregate(total=Sum('balance'))['total']
+        context['total_sum'] = total or 0
+        return context
+
+
+class WalletTransferView(LoginRequiredMixin, CreateView):
+    form_class = TransferForm
+    template_name = 'personal_finance/transfer.html'
+    success_url = reverse_lazy('home')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        cd = form.cleaned_data
+
+        try:
+            FinanceService.transfer(
+                user=self.request.user,
+                from_wallet_id=cd['from_wallet'].id,
+                to_wallet_id=cd['to_wallet'].id,
+                amount=cd["amount"]
+            )
+            messages.success(self.request, "Перевод успешно выполнен!")
+        except ValidationError as e:
+            form.add_error(None, e.message if hasattr(e, 'message') else str(e))
+            return self.form_invalid(form)
+        except Exception as e:
+            form.add_error(None, f"Ошибка операции: {str(e)}")
+            return self.form_invalid(form)
+
+        return redirect(self.success_url)

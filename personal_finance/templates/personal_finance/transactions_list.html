@@ -3,164 +3,169 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">Фильтр транзакций</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary mb-0"><i class="bi bi-list-check"></i> История операций</h2>
+        <a href="{% url 'add_transaction' %}" class="btn btn-success shadow-sm">
+            <i class="bi bi-plus-lg"></i> Новая транзакция
+        </a>
+    </div>
 
-    <div class="card shadow-sm mb-5">
+    <!-- Блок фильтров (без изменений, кроме удаления лишних отступов) -->
+    <div class="card shadow-sm border-0 mb-5">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0 text-muted small fw-bold text-uppercase">Фильтрация</h5>
+        </div>
         <div class="card-body">
-
-            {% if form.non_field_errors %}
-                <div class="alert alert-danger">
-                    {% for error in form.non_field_errors %}
-                        <p class="mb-0">{{ error }}</p>
-                    {% endfor %}
-                </div>
-            {% endif %}
-
-            <form method="get" novalidate>
-                {% csrf_token %}
+            <form method="get" novalidate id="filter-form">
                 <div class="row g-3 align-items-end">
-                    <div class="col-lg-2 col-md-4 col-sm-6">
-                        {{ form.period.label_tag }}
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label small text-muted">{{ form.period.label }}</label>
                         {{ form.period }}
-                        {% if form.period.errors %}
-                            <div class="text-danger small mt-1">{{ form.period.errors|join:", " }}</div>
-                        {% endif %}
                     </div>
-
-                    <div class="col-12" id="date-range-container" style="display: none;">
-                        <div class="row g-3">
-                            <div class="col-lg-2 col-md-4 col-sm-6">
-                                {{ form.date_from.label_tag }}
+                    <div id="date-range-container" class="col-lg-6 col-md-12" style="display: none;">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label small text-muted">{{ form.date_from.label }}</label>
                                 {{ form.date_from }}
-                                {% if form.date_from.errors %}
-                                    <div class="text-danger small mt-1">{{ form.date_from.errors|join:", " }}</div>
-                                {% endif %}
                             </div>
-                            <div class="col-lg-2 col-md-4 col-sm-6">
-                                {{ form.date_to.label_tag }}
+                            <div class="col-6">
+                                <label class="form-label small text-muted">{{ form.date_to.label }}</label>
                                 {{ form.date_to }}
-                                {% if form.date_to.errors %}
-                                    <div class="text-danger small mt-1">{{ form.date_to.errors|join:", " }}</div>
-                                {% endif %}
                             </div>
                         </div>
                     </div>
-
-                    <div class="col-lg-2 col-md-4 col-sm-6">
-                        {{ form.operation_type.label_tag }}
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label small text-muted">{{ form.operation_type.label }}</label>
                         {{ form.operation_type }}
-                        {% if form.operation_type.errors %}
-                            <div class="text-danger small mt-1">{{ form.operation_type.errors|join:", " }}</div>
-                        {% endif %}
                     </div>
-
-                    <div class="col-lg-2 col-md-4 col-sm-6">
-                        <button type="submit" class="btn btn-primary w-100">Применить</button>
+                    <div class="col-lg-2 col-md-6 ms-auto">
+                        <button type="submit" class="btn btn-primary w-100">Найти</button>
                     </div>
-                    <div class="col-lg-2 col-md-4 col-sm-6">
-                        <a href="{% url 'add_transaction' %}" class="btn btn-primary w-100">
-                            Добавить транзакцию
-                        </a>
-                    </div>
-
-
-
                 </div>
 
-                <!-- Шаблон для выбора категорий -->
                 <div class="mt-4 pt-3 border-top">
-                    <label class="form-label fw-semibold">{{ form.category.label }}</label>
-
+                    <label class="form-label small fw-bold text-muted mb-3">{{ form.category.label }}</label>
                     <div class="d-flex flex-wrap gap-2">
-                            {% for category in form.category.field.queryset %}
-                                <label class="badge category-badge rounded-pill px-3 py-2
-                                    {% if category.pk|stringformat:'s' in form.category.value %}
-                                        bg-primary text-white
-                                    {% else %}
-                                        bg-light text-dark border
-                                    {% endif %}"
-                                       data-category-id="{{ category.pk }}">
-                                    <input type="checkbox"
-                                           name="{{ form.category.name }}"
-                                           value="{{ category.pk }}"
-                                           {% if category.pk|stringformat:'s' in form.category.value %}checked{% endif %}
-                                           class="category-checkbox d-none">
-                                    <span>{{ category.name }}</span>
-                                </label>
-                            {% endfor %}
-                        </div>
-
-
-                    {% if form.category.errors %}
-                        <div class="text-danger small mt-2">{{ form.category.errors|join:", " }}</div>
-                    {% endif %}
+                        {% for category in form.category.field.queryset %}
+                            <label class="category-badge rounded-pill px-3 py-2 border transition-all
+                                {% if category.pk|stringformat:'s' in form.category.value %}
+                                    bg-primary text-white border-primary shadow-sm
+                                {% else %}
+                                    bg-light text-dark
+                                {% endif %}"
+                                   style="cursor: pointer; user-select: none;">
+                                <input type="checkbox" name="{{ form.category.name }}" value="{{ category.pk }}"
+                                       {% if category.pk|stringformat:'s' in form.category.value %}checked{% endif %}
+                                       class="category-checkbox d-none">
+                                <span class="small">{{ category.name }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Список транзакций -->
-    <h3 class="mb-3">Транзакции</h3>
+    <div class="row">
+        <div class="col-12">
+            <h5 class="text-muted mb-3">Записи за период</h5>
+            {% if transactions %}
+                <div class="transaction-list shadow-sm rounded">
+                    {% for t in transactions %}
+                        <div class="transaction-item d-flex justify-content-between align-items-center p-3 bg-white border-bottom hover-bg-light transition-all">
+                            <div class="d-flex align-items-center">
+                                <div class="category-icon me-3 d-none d-sm-flex align-items-center justify-content-center rounded-circle bg-light text-primary" style="width: 45px; height: 45px;">
+                                    <i class="bi bi-tag"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold">{{ t.category.name }}</h6>
+                                    <p class="mb-0 text-muted small">{{ t.description|default:"Без описания" }}</p>
+                                    <small class="text-uppercase fw-bold text-secondary" style="font-size: 10px;">{{ t.date|date:"d M Y" }}</small>
+                                </div>
+                            </div>
 
-        {% if transactions %}
-        <div class="list-group shadow-sm">
-            {% for t in transactions %}
-                <div class="list-group-item d-flex justify-content-between align-items-center py-3 rounded mb-2 hover-shadow">
-                <!-- Левая часть -->
-                <a href="{% url 'edit_transaction' t.pk %}" class="text-decoration-none text-dark flex-grow-1">
-                    <strong>{{ t.category.name }}</strong> — {{ t.description|default:"Без описания" }}
-                    <br>
-                    <small class="text-muted">{{ t.date|date:"d.m.Y" }}</small>
-                </a>
+                            <div class="text-end d-flex align-items-center gap-4">
+                                <div class="{% if t.operation_type == 'income' %}text-success{% else %}text-danger{% endif %} fw-bold fs-5">
+                                    {% if t.operation_type == 'income' %}+{% else %}−{% endif %}{{ t.total|floatformat:0 }} ₽
+                                </div>
 
-                <!-- Правая часть (сумма + кнопки) -->
-                <div class="d-flex align-items-center gap-3">
+                                <div class="actions d-flex gap-2">
+                                    <a href="{% url 'edit_transaction' t.pk %}" class="btn btn-sm btn-outline-secondary border-0" title="Редактировать">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <!-- Кнопка модалки -->
+                                    <button type="button" class="btn btn-sm btn-outline-danger border-0"
+                                            data-bs-toggle="modal" data-bs-target="#deleteModal{{ t.pk }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
-                    <!-- Сумма -->
-                    <div class="{% if t.operation_type == 'income' %}text-success{% else %}text-danger{% endif %} fw-bold fs-5">
-                        {% if t.operation_type == 'income' %}+{% else %}−{% endif %}{{ t.total|floatformat:0 }} ₽
-                    </div>
-
-                    <!-- Кнопка редактирования -->
-                    <a href="{% url 'edit_transaction' t.pk %}"
-                       class="text-primary fs-5"
-                       title="Редактировать">
-                        <i class="fas fa-pencil-alt"></i>
-                    </a>
-
-                    <!-- Кнопка удаления -->
-                    <form method="post" action="{% url 'delete_transaction' t.pk %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit"
-                                class="btn p-0 border-0 bg-transparent text-danger fs-5"
-                                title="Удалить"
-                                onclick="return confirm('Удалить транзакцию?');">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </form>
+                        <!-- Модальное окно удаления для текущей транзакции -->
+                        <div class="modal fade" id="deleteModal{{ t.pk }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content border-0 shadow">
+                                    <div class="modal-header border-0">
+                                        <h5 class="modal-title fw-bold">Удалить операцию?</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body py-4">
+                                        Вы уверены, что хотите удалить <strong>{{ t.category.name }}</strong> на сумму <strong>{{ t.total }} ₽</strong>?
+                                        Баланс кошелька будет пересчитан автоматически.
+                                    </div>
+                                    <div class="modal-footer border-0">
+                                        <form method="post" action="{% url 'delete_transaction' t.pk %}" class="m-0">
+                                            {% csrf_token %}
+                                            <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Отмена</button>
+                                            <button type="submit" class="btn btn-danger px-4">Удалить</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
                 </div>
-            </div>
-
-            {% endfor %}
+            {% else %}
+                <div class="card border-0 shadow-sm text-center py-5">
+                    <div class="card-body">
+                        <i class="bi bi-search display-1 text-light"></i>
+                        <p class="lead text-muted mt-3">Ничего не найдено</p>
+                    </div>
+                </div>
+            {% endif %}
         </div>
-    {% else %}
-        <div class="text-center py-5 text-muted">
-            <p class="lead">Нет транзакций за выбранный период</p>
-        </div>
-    {% endif %}
+    </div>
 </div>
 
-{% endblock %}
-
-{% block extra_css %}
-{{ block.super }}
-<link rel="stylesheet" href="{% static 'personal_finance/css/styles.css' %}">
+<style>
+    .transition-all { transition: all 0.2s ease-in-out; }
+    .category-badge:hover { filter: brightness(0.9); transform: translateY(-1px); }
+    .hover-bg-light:hover { background-color: #f8f9fa !important; }
+</style>
 {% endblock %}
 
 {% block extra_js %}
-{{ block.super }}
-<script src="{% static 'personal_finance/js/transactions_filter.js' %}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Стилизация селектов
+        document.querySelectorAll('#filter-form select, #filter-form input').forEach(el => {
+            if (!el.classList.contains('category-checkbox')) el.classList.add('form-control');
+        });
 
+        const periodSelect = document.querySelector('select[name="period"]');
+        const dateRange = document.getElementById('date-range-container');
+
+        function toggleDates() {
+            dateRange.style.display = (periodSelect && periodSelect.value === 'custom') ? 'block' : 'none';
+        }
+
+        if(periodSelect) {
+            periodSelect.addEventListener('change', toggleDates);
+            toggleDates();
+        }
+    });
+</script>
 <script src="{% static 'personal_finance/js/transactions_category_btn.js' %}"></script>
-
 {% endblock %}

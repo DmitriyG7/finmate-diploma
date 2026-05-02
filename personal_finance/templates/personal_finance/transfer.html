@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-center mb-4">Перевод между счетами</h3>
+                    
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Откуда списать</label>
+                            {{ form.from_wallet|attr:"class:form-select form-select-lg" }}
+                        </div>
+
+                        <div class="text-center my-2">
+                            <i class="bi bi-arrow-down-up text-primary fs-3"></i>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Куда зачислить</label>
+                            {{ form.to_wallet|attr:"class:form-select form-select-lg" }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Сумма перевода</label>
+                            <div class="input-group input-group-lg">
+                                {{ form.amount|attr:"class:form-control" }}
+                                <span class="input-group-text"><i class="bi bi-cash"></i></span>
+                            </div>
+                        </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">Подтвердить перевод</button>
+                            <a href="{% url 'wallet_list' %}" class="btn btn-link text-muted">Отмена</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

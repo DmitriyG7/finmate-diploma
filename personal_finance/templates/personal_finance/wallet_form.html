@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>.toast-container {
+    min-width: 300px;
+    }
+
+    .position-fixed.bottom-0.end-0 {
+        margin-bottom: 20px;
+        margin-right: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        {% if object %} Редактирование кошелька {% else %} Новый кошелек {% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {# Глобальные ошибки (например, из ValidationError сервиса) #}
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors|join:", " }}
+                            </div>
+                        {% endif %}
+
+                        {% for field in form %}
+                            <div class="mb-3">
+                                {% if field.name == 'is_default' %}
+                                    <div class="form-check">
+                                        {{ field }}
+                                        <label class="form-check-label" for="{{ field.id_for_label }}">
+                                            {{ field.label }}
+                                        </label>
+                                    </div>
+                                {% else %}
+                                    <label class="form-label fw-bold">{{ field.label }}</label>
+                                    {{ field }}
+                                {% endif %}
+                                
+                                {% if field.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ field.errors|join:", " }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                {% if object %} Сохранить изменения {% else %} Создать {% endif %}
+                            </button>
+                            <a href="{% url 'wallet_list' %}" class="btn btn-outline-secondary">Отмена</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const balanceInput = document.querySelector('input[name="balance"]');
+
+    if (!balanceInput) return;
+
+    balanceInput.addEventListener('input', function (e) {
+        let value = e.target.value;
+
+        // заменяем запятую на точку
+        value = value.replace(',', '.');
+
+        // оставляем только цифры и точки
+        value = value.replace(/[^\d.]/g, '');
+
+        // если больше одной точки — оставляем только первую
+        const firstDotIndex = value.indexOf('.');
+        if (firstDotIndex !== -1) {
+            const beforeDot = value.slice(0, firstDotIndex + 1);
+            const afterDot = value.slice(firstDotIndex + 1).replace(/\./g, '');
+            value = beforeDot + afterDot;
+        }
+
+        // ограничиваем до 2 знаков после точки
+        if (value.includes('.')) {
+            const [intPart, decimalPart] = value.split('.');
+            value = intPart + '.' + decimalPart.slice(0, 2);
+        }
+
+        e.target.value = value;
+    });
+});
+</script>
+{% endblock %}

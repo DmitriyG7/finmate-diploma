@@ -54,3 +54,26 @@
     border: none;
     outline: none;
 }
+
+/* Те самые стили для баджей-чекбоксов */
+.category-badge {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.category-badge:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+
+/* Скроллбар для списка категорий */
+.max-h-300 {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.hover-shadow:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    background-color: #fcfcfc !important;
+}

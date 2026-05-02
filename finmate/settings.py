@@ -162,3 +162,15 @@ EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", True)
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SERVER_EMAIL = EMAIL_HOST_USER
 EMAIL_ADMIN = EMAIL_HOST_USER
+
+MAX_WALLETS_PER_USER = int(os.getenv("MAX_WALLETS_PER_USER", "10"))
+
+from django.contrib.messages import constants as message_constants
+
+MESSAGE_TAGS = {
+    message_constants.DEBUG: 'secondary',
+    message_constants.INFO: 'info',
+    message_constants.SUCCESS: 'success',
+    message_constants.WARNING: 'warning',
+    message_constants.ERROR: 'danger',  # Важно: Django 'error' -> Bootstrap 'danger'
+}

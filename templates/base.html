@@ -2,85 +2,191 @@
 {% load widget_tweaks %}
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if title %} {{ title }} {% else %} FinMate — Твой личный финансовый помощник {% endif %}</title>
+
+    <!-- Иконки: Font Awesome + Bootstrap Icons (добавили для новых шаблонов) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <title>{% if title %} {{ title }} {% else %} Finmate {% endif %}</title>
-    <!-- Подключаем Bootstrap через CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <!-- Bootstrap 5.3.2 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- Подключаем свои кастомные стили -->
+    <!-- Google Fonts (добавим немного стиля) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Свои стили -->
     <link rel="stylesheet" href="{% static 'users/css/profile.css' %}">
     <link rel="stylesheet" href="{% static 'personal_finance/css/styles.css' %}">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .navbar {
+            backdrop-filter: blur(10px);
+            background-color: rgba(33, 37, 41, 0.95) !important;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        /* Подсветка активной ссылки */
+        .nav-link.active {
+            color: #fff !important;
+            border-bottom: 2px solid #0d6efd;
+        }
+
+        /* Улучшенные уведомления */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+        }
+
+        .custom-toast {
+            background: #ffffff !important;
+            border-radius: 12px !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+            border: none !important;
+            min-width: 320px;
+        }
+
+        .footer {
+            margin-top: auto;
+            background: white;
+            border-top: 1px solid #dee2e6;
+        }
+    </style>
 
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Навигационная панель -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top mb-4 shadow-sm">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'home' %}">FinMate</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <a class="navbar-brand fw-bold fs-4" href="{% url 'home' %}">
+                <i class="bi bi-wallet2 text-primary me-2"></i>FinMate
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-
+                <ul class="navbar-nav ms-auto align-items-center">
                     {% if user.is_authenticated %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Транзакции</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'analytics' %}">Аналитика</a></li>
+                        <li class="nav-item px-2">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'wallet_list' %}active{% endif %}"
+                               href="{% url 'wallet_list' %}">Счета</a>
+                        </li>
+                        <li class="nav-item px-2">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}"
+                               href="{% url 'home' %}">Транзакции</a>
+                        </li>
+                        <li class="nav-item px-2">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'analytics' %}active{% endif %}"
+                               href="{% url 'analytics' %}">Аналитика</a>
+                        </li>
 
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="avatarMenu" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
+                        <!-- Разделитель для мобилок -->
+                        <div class="vr d-none d-lg-block mx-3 text-white-50"></div>
 
-                            {% if user.avatar %}
-                                <img src="{{ user.avatar.url }}" alt="avatar" class="rounded-circle"
-                                     style="width: 36px; height: 36px; object-fit: cover;">
-                            {% else %}
-                                <img src="{{ DEFAULT_AVATAR }}" class="rounded-circle"
-                                 style="width:36px;height:36px;object-fit:cover;">
-                            {% endif %}
-                        </a>
-
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="avatarMenu" style="min-width: 180px;">
-                            <li>
-                                <a class="dropdown-item" href="{% url 'users:profile' %}">
-                                    Личный кабинет
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form method="post" action="{% url 'users:logout' %}" class="p-0 m-0">
-                                    {% csrf_token %}
-                                    <button type="submit" class="dropdown-item text-danger fw-bold">
-                                        Выйти
-                                    </button>
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
-
+                        <li class="nav-item dropdown ms-lg-2">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="avatarMenu"
+                               role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                {% if user.avatar %}
+                                    <img src="{{ user.avatar.url }}" alt="avatar" class="rounded-circle border border-2 border-primary" style="width: 35px; height: 35px; object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 35px; height: 35px;">
+                                        <i class="bi bi-person-fill"></i>
+                                    </div>
+                                {% endif %}
+                                <span class="ms-2 d-lg-none">{{ user.username }}</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2" aria-labelledby="avatarMenu">
+                                <li class="px-3 py-2 fw-bold text-muted small text-uppercase">Настройки</li>
+                                <li><a class="dropdown-item" href="{% url 'users:profile' %}"><i class="bi bi-person me-2"></i>Профиль</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" action="{% url 'users:logout' %}" class="p-0 m-0">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item text-danger fw-bold">
+                                            <i class="bi bi-box-arrow-right me-2"></i>Выйти
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
                     {% else %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'users:login' %}">Войти</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'users:login' %}">Войти</a></li>
                     {% endif %}
-
-
                 </ul>
             </div>
         </div>
     </nav>
 
-    <!-- Основной контент страницы -->
-    <div class="container">
+    <!-- Основной контент -->
+    <main class="container pb-5">
         {% block content %}
         {% endblock %}
+    </main>
+
+    <!-- Простой футер -->
+    <footer class="footer py-3 mt-auto">
+        <div class="container text-center text-muted small">
+            &copy; 2026 FinMate Pet Project. Сделано с умом.
+        </div>
+    </footer>
+
+    <!-- Контейнер уведомлений -->
+    <div class="toast-container" id="toastContainer">
+        {% for message in messages %}
+            <div class="toast custom-toast" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-accent bg-{{ message.tags|default:'primary' }}"></div>
+                <div class="d-flex align-items-center w-100 p-3">
+                    <div class="me-3 fs-4">
+                        {% if message.tags == 'success' %}
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                        {% elif message.tags == 'error' or message.tags == 'danger' %}
+                            <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                        {% else %}
+                            <i class="bi bi-info-circle-fill text-primary"></i>
+                        {% endif %}
+                    </div>
+                    <div class="toast-body p-0 fw-semibold text-dark">
+                        {{ message }}
+                    </div>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+                </div>
+            </div>
+        {% endfor %}
     </div>
 
-    <!-- Подключаем Bootstrap JS -->
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/inputmask@5.0.8/dist/inputmask.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toastElList = [].slice.call(document.querySelectorAll('.toast'));
+            toastElList.map(function(toastEl) {
+                const toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 4000 });
+                toast.show();
+            });
+        });
+    </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>
