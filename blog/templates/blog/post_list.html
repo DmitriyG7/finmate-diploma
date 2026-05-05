@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h1>Блог и база знаний</h1>
+    <div class="row">
+        {% for post in posts %}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ post.title }}</h5>
+                    <p class="text-muted small">
+                        Автор: {{ post.author.username }} | {{ post.get_post_type_display }}
+                    </p>
+                    <p class="card-text">{{ post.content|truncatewords:30 }}</p>
+                </div>
+                <div class="card-footer bg-transparent border-top-0">
+                    <a href="{% url 'blog:post_detail' post.slug %}" class="btn btn-primary">Читать далее</a>
+                    <span class="float-end text-muted">{{ post.read_time }} мин.</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

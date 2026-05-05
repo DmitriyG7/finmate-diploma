@@ -21,10 +21,13 @@ import calendar
 from datetime import timedelta, date
 
 from personal_finance.services.finance_service import FinanceService
+from blog.models import Post
 
 
 @login_required
 def transaction_list(request):
+    relevant_post = None
+
     form = TransactionUserForm(data=request.GET or None, user=request.user)
 
     queryset = PersonalTransaction.objects.filter(user=request.user)\
@@ -67,6 +70,11 @@ def transaction_list(request):
         categories = cd.get("category")
         if categories:
             queryset = queryset.filter(category__in=categories)
+            first_category = categories[0]
+
+            relevant_post = Post.objects.verified().filter(
+                linked_category=first_category
+            ).first()
 
         if cd.get("wallet"):
             queryset = queryset.filter(wallet=cd["wallet"])
@@ -82,7 +90,8 @@ def transaction_list(request):
     context = {
         "form": form,
         "transactions": queryset,
-        'title': 'Мои финансы',
+        "title": 'Мои финансы',
+        "relevant_post": relevant_post
     }
 
     return render(request, "personal_finance/transactions_list.html", context)

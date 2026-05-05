@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'users',
     'personal_finance',
     'groups',
+    'mdeditor',
     'blog',
     'widget_tweaks',
 ]

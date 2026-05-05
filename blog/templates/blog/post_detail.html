@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load blog_filters %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'blog:post_list' %}">Блог</a></li>
+            <li class="breadcrumb-item active">{{ post.title }}</li>
+        </ol>
+    </nav>
+
+    <article>
+        <header class="mb-4">
+            <h1 class="fw-bolder mb-1">{{ post.title }}</h1>
+            <div class="text-muted fst-italic mb-2">
+                Опубликовано {{ post.created_at|date:"d.m.Y" }} автором {{ post.author.username }}
+            </div>
+            {% if post.linked_category %}
+                <span class="badge bg-info text-dark">Тема: {{ post.linked_category.name }}</span>
+            {% endif %}
+        </header>
+
+        {% if user_category_spent %}
+        <div class="card border-primary mb-4">
+            <div class="card-body">
+                <h5 class="card-title text-primary">Ваша статистика</h5>
+                <p class="card-text">
+                    В этом месяце вы потратили в категории <strong>{{ post.linked_category.name }}</strong>:
+                    <span class="badge bg-primary fs-6">{{ user_category_spent }} ₽</span>
+                </p>
+                <a href="{% url 'home' %}?category={{ post.linked_category.id }}" class="btn btn-sm btn-outline-primary">
+                    Посмотреть транзакции
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="entry-content">
+            {{ post.content|markdown_to_html }}
+        </div>
+    </article>
+</div>
+{% endblock %}

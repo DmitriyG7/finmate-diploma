@@ -98,6 +98,17 @@
         </div>
     </div>
 
+    {% if relevant_post %}
+    <div class="alert alert-info d-flex align-items-center" role="alert">
+        <i class="bi bi-lightbulb-fill me-2"></i> <!-- Иконка лампочки, если есть Bootstrap Icons -->
+        <div>
+            <strong>Совет по теме:</strong>
+            {{ relevant_post.title }}.
+            <a href="{% url 'blog:post_detail' relevant_post.slug %}" class="alert-link">Читать статью ({{ relevant_post.read_time }} мин)</a>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Список транзакций -->
     <div class="row">
         <div class="col-12">

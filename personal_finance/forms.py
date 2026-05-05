@@ -90,6 +90,7 @@ class TransactionUserForm(FinanceFormMixin, forms.Form):
 
         if user and user.is_authenticated:
             self.fields['wallet'].queryset = Wallet.objects.filter(user=user, is_active=True)
+            self.fields['category'].queryset = Category.objects.for_user(user=user)
 
     def clean(self):
         cd = super().clean()
