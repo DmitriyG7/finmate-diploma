@@ -1,16 +1,22 @@
 {% extends "base.html" %}
 {% load static %}
+{% load widget_tweaks %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="text-primary mb-0"><i class="bi bi-list-check"></i> История операций</h2>
-        <a href="{% url 'add_transaction' %}" class="btn btn-success shadow-sm">
-            <i class="bi bi-plus-lg"></i> Новая транзакция
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{% url 'wallet_transfer' %}" class="btn btn-outline-primary shadow-sm">
+                <i class="bi bi-arrow-left-right"></i> Перевод
+            </a>
+            <a href="{% url 'add_transaction' %}" class="btn btn-success shadow-sm">
+                <i class="bi bi-plus-lg"></i> Новая транзакция
+            </a>
+        </div>
     </div>
 
-    <!-- Блок фильтров (без изменений, кроме удаления лишних отступов) -->
+    <!-- Блок фильтров (без изменений) -->
     <div class="card shadow-sm border-0 mb-5">
         <div class="card-header bg-white py-3">
             <h5 class="mb-0 text-muted small fw-bold text-uppercase">Фильтрация</h5>
@@ -24,19 +30,45 @@
                     </div>
                     <div id="date-range-container" class="col-lg-6 col-md-12" style="display: none;">
                         <div class="row g-2">
-                            <div class="col-6">
+                            <!-- Поле даты НАЧАЛА -->
+                            <div class="col-6 position-relative"> <!-- Добавлено position-relative -->
                                 <label class="form-label small text-muted">{{ form.date_from.label }}</label>
-                                {{ form.date_from }}
+                                {{ form.date_from|add_class:"form-control" }}
+
+                                {% if form.date_from.errors %}
+                                    {% for error in form.date_from.errors %}
+                                        <!-- Текст вырван из потока, чтобы не толкать нижние элементы -->
+                                        <div class="text-danger position-absolute start-0 w-100 ps-2"
+                                             style="font-size: 11px; bottom: -18px; line-height: 1;">
+                                            {{ error }}
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
                             </div>
-                            <div class="col-6">
+
+                            <!-- Поле даты КОНЦА -->
+                            <div class="col-6 position-relative"> <!-- Добавлено position-relative -->
                                 <label class="form-label small text-muted">{{ form.date_to.label }}</label>
-                                {{ form.date_to }}
+                                {{ form.date_to|add_class:"form-control" }}
+
+                                {% if form.date_to.errors %}
+                                    {% for error in form.date_to.errors %}
+                                        <div class="text-danger position-absolute start-0 w-100 ps-2"
+                                             style="font-size: 11px; bottom: -18px; line-height: 1;">
+                                            {{ error }}
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
                             </div>
                         </div>
                     </div>
                     <div class="col-lg-3 col-md-6">
                         <label class="form-label small text-muted">{{ form.operation_type.label }}</label>
                         {{ form.operation_type }}
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label small text-muted">Выбрать счет</label>
+                        {{ form.wallet|add_class:"form-select" }}
                     </div>
                     <div class="col-lg-2 col-md-6 ms-auto">
                         <button type="submit" class="btn btn-primary w-100">Найти</button>
@@ -75,35 +107,53 @@
                     {% for t in transactions %}
                         <div class="transaction-item d-flex justify-content-between align-items-center p-3 bg-white border-bottom hover-bg-light transition-all">
                             <div class="d-flex align-items-center">
-                                <div class="category-icon me-3 d-none d-sm-flex align-items-center justify-content-center rounded-circle bg-light text-primary" style="width: 45px; height: 45px;">
-                                    <i class="bi bi-tag"></i>
+                                <!-- Иконка меняет цвет в зависимости от типа -->
+                                <div class="category-icon me-3 d-none d-sm-flex align-items-center justify-content-center rounded-circle
+                                    {% if t.operation_type == 'income' %}bg-success-subtle text-success
+                                    {% elif t.operation_type == 'expense' %}bg-danger-subtle text-danger
+                                    {% else %}bg-primary-subtle text-primary{% endif %}"
+                                    style="width: 45px; height: 45px;">
+                                    <i class="bi {% if t.operation_type == 'transfer' %}bi-arrow-left-right{% else %}bi-tag{% endif %}"></i>
                                 </div>
                                 <div>
                                     <h6 class="mb-0 fw-bold">{{ t.category.name }}</h6>
-                                    <p class="mb-0 text-muted small">{{ t.description|default:"Без описания" }}</p>
+                                    <!-- Описание с указанием кошелька -->
+                                    <p class="mb-0 text-muted small">
+                                        {{ t.description|default:"Без описания" }}
+                                        <span class="badge bg-light text-dark fw-normal border ms-1">{{ t.wallet.name }}</span>
+                                    </p>
                                     <small class="text-uppercase fw-bold text-secondary" style="font-size: 10px;">{{ t.date|date:"d M Y" }}</small>
                                 </div>
                             </div>
 
                             <div class="text-end d-flex align-items-center gap-4">
-                                <div class="{% if t.operation_type == 'income' %}text-success{% else %}text-danger{% endif %} fw-bold fs-5">
-                                    {% if t.operation_type == 'income' %}+{% else %}−{% endif %}{{ t.total|floatformat:0 }} ₽
+                                <!-- Цвет суммы -->
+                                <div class="fw-bold fs-5
+                                    {% if t.operation_type == 'income' %}text-success
+                                    {% elif t.operation_type == 'expense' %}text-danger
+                                    {% else %}text-primary{% endif %}">
+                                    {% if t.operation_type == 'income' %}+{% elif t.operation_type == 'expense' %}−{% endif %}{{ t.total|floatformat:0 }} ₽
                                 </div>
 
                                 <div class="actions d-flex gap-2">
+                                    <!-- Скрываем кнопку редактирования для системных переводов, чтобы не сломать баланс -->
+                                    {% if t.operation_type != 'transfer' %}
                                     <a href="{% url 'edit_transaction' t.pk %}" class="btn btn-sm btn-outline-secondary border-0" title="Редактировать">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <!-- Кнопка модалки -->
                                     <button type="button" class="btn btn-sm btn-outline-danger border-0"
                                             data-bs-toggle="modal" data-bs-target="#deleteModal{{ t.pk }}">
                                         <i class="bi bi-trash"></i>
                                     </button>
+                                    {% else %}
+                                    <span class="text-muted small p-2"><i class="bi bi-lock-fill" title="Системная запись"></i></span>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Модальное окно удаления для текущей транзакции -->
+                        <!-- Модалка удаления (только для обычных транзакций) -->
+                        {% if t.operation_type != 'transfer' %}
                         <div class="modal fade" id="deleteModal{{ t.pk }}" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered">
                                 <div class="modal-content border-0 shadow">
@@ -125,6 +175,7 @@
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
                     {% endfor %}
                 </div>
             {% else %}
@@ -139,33 +190,85 @@
     </div>
 </div>
 
-<style>
-    .transition-all { transition: all 0.2s ease-in-out; }
-    .category-badge:hover { filter: brightness(0.9); transform: translateY(-1px); }
-    .hover-bg-light:hover { background-color: #f8f9fa !important; }
-</style>
-{% endblock %}
-
 {% block extra_js %}
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        // Стилизация селектов
-        document.querySelectorAll('#filter-form select, #filter-form input').forEach(el => {
-            if (!el.classList.contains('category-checkbox')) el.classList.add('form-control');
+        const filterForm = document.getElementById('filter-form');
+
+        // 1. Авто-отправка для всех селектов (кроме случая с кастомным периодом)
+        const autoSubmitSelects = filterForm.querySelectorAll('select');
+        autoSubmitSelects.forEach(select => {
+            select.addEventListener('change', function() {
+                // ИСПРАВЛЕНИЕ: если это поле периода и выбрано 'custom', ничего не делаем,
+                // даем возможность пользователю ввести даты.
+                if (this.name === 'period' && this.value === 'custom') {
+                    return;
+                }
+                filterForm.submit();
+            });
         });
 
+        // 2. Авто-отправка для чекбоксов категорий (без изменений)
+        const categoryCheckboxes = filterForm.querySelectorAll('.category-checkbox');
+        categoryCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        });
+
+        // 3. Логика отображения диапазона дат (без изменений)
         const periodSelect = document.querySelector('select[name="period"]');
         const dateRange = document.getElementById('date-range-container');
 
         function toggleDates() {
-            dateRange.style.display = (periodSelect && periodSelect.value === 'custom') ? 'block' : 'none';
+            if (periodSelect && dateRange) {
+                dateRange.style.display = (periodSelect.value === 'custom') ? 'block' : 'none';
+            }
         }
 
-        if(periodSelect) {
-            periodSelect.addEventListener('change', toggleDates);
+        if (periodSelect) {
+            periodSelect.addEventListener('change', function(e) {
+                toggleDates();
+                if (this.value !== 'custom') {
+                    filterForm.submit();
+                }
+            });
             toggleDates();
         }
+
+        // Конфигурация календаря
+        const fpConfig = {
+            locale: "ru",
+            dateFormat: "d.m.Y", // Соответствует твоему input_formats в Django
+            allowInput: true,    // Позволяет вводить руками, если нужно
+            disableMobile: "true", // Чтобы на телефонах открывался красивый виджет, а не системный
+            animate: "true",
+            maxDate: "today",
+        };
+
+        // Инициализация для обоих полей
+        flatpickr("input[name='date_from']", fpConfig);
+        flatpickr("input[name='date_to']", fpConfig);
     });
 </script>
 <script src="{% static 'personal_finance/js/transactions_category_btn.js' %}"></script>
+{% endblock %}
+
+<style>
+    .transition-all { transition: all 0.2s ease-in-out; }
+    .category-badge:hover { filter: brightness(0.9); transform: translateY(-1px); }
+    .hover-bg-light:hover { background-color: #f8f9fa !important; }
+    .bg-success-subtle { background-color: #d1e7dd; }
+    .bg-danger-subtle { background-color: #f8d7da; }
+    .bg-primary-subtle { background-color: #cfe2ff; }
+
+    .flatpickr-day.selected {
+    background: #0d6efd !important; /* Цвет твоей основной темы Bootstrap */
+    border-color: #0d6efd !important;
+    }
+    .flatpickr-calendar {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        border: none;
+    }
+</style>
 {% endblock %}

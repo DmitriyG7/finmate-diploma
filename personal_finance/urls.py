@@ -16,4 +16,8 @@ urlpatterns = [
     path('wallets/<int:pk>/update/', views.WalletUpdateView.as_view(), name='update_wallet'),
     path('wallets/<int:pk>/delete/', views.WalletDeleteView.as_view(), name='delete_wallet'),
 
+    path('categories/', views.CategoryListView.as_view(), name='category_list'),
+    path('categories/<int:pk>/update/', views.CategoryUpdateView.as_view(), name='category_update'),
+    path('categories/<int:pk>/delete/', views.CategoryDeleteView.as_view(), name='category_delete'),
+
 ]

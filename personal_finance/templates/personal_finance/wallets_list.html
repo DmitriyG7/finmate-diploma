@@ -4,16 +4,25 @@
 {% block content %}
 <div class="container mt-4">
     <!-- Заголовок и кнопка создания -->
+    <div class="container mt-4">
+    <!-- Заголовок и кнопки управления -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-0">Мои кошельки</h2>
-            <p class="text-muted">Общий баланс по всем счетам: 
+            <h2 class="mb-0">Мои счета</h2>
+            <p class="text-muted">Общий баланс по всем счетам:
                 <span class="fw-bold text-dark">{{ total_sum|floatformat:2 }} ₽</span>
             </p>
         </div>
-        <a href="{% url 'add_wallet' %}" class="btn btn-primary shadow-sm">
-            <i class="fas fa-plus me-2"></i>Новый кошелек
-        </a>
+        <div class="d-flex gap-2">
+            <!-- Кнопка перевода -->
+            <a href="{% url 'wallet_transfer' %}" class="btn btn-outline-primary shadow-sm">
+                <i class="fas fa-exchange-alt me-2"></i>Перевод
+            </a>
+            <!-- Кнопка создания -->
+            <a href="{% url 'add_wallet' %}" class="btn btn-primary shadow-sm">
+                <i class="fas fa-plus me-2"></i>Новый счет
+            </a>
+        </div>
     </div>
 
     <!-- Список кошельков (Сетка) -->
@@ -81,7 +90,7 @@
                         </div>
                     </div>
                     <div class="card-footer bg-transparent border-0 pb-3">
-                        <a href="{% url 'wallet_list' %}" class="btn btn-outline-secondary btn-sm w-100">
+                        <a href="{% url 'home' %}?wallet={{ wallet.id }}" class="btn btn-outline-secondary btn-sm w-100">
                             История операций
                         </a>
                     </div>

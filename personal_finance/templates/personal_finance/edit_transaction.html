@@ -13,69 +13,63 @@
                 <form method="post" novalidate>
                     {% csrf_token %}
 
-                    <!-- Дата -->
-                    <div class="mb-3">
-                        <label for="id_date" class="form-label fw-semibold">Дата</label>
-                        {{ form.date|add_class:"form-control" }}
-                        {% if form.date.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.date.errors %}
-                                    <div>{{ error }}</div>
+                    {% if form.errors %}
+                        <div class="alert alert-danger shadow-sm">
+                            <ul class="mb-0">
+                                {# Сначала выводим общие ошибки #}
+                                {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
                                 {% endfor %}
-                            </div>
+
+                                {# Затем пробегаем по всем полям и выводим их специфичные ошибки #}
+                                {% for field in form %}
+                                    {% if field.errors %}
+                                        {% for error in field.errors %}
+                                            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                    <!-- Кошелек (Добавили блок) -->
+                    <div class="mb-3">
+                        <label for="{{ form.wallet.id_for_label }}" class="form-label fw-semibold">Счет</label>
+                        {{ form.wallet|add_class:"form-select" }}
+                        {% if form.wallet.errors %}
+                            <div class="text-danger small mt-1">{{ form.wallet.errors|first }}</div>
                         {% endif %}
                     </div>
 
-                    <!-- Описание -->
-                    <div class="mb-3">
-                        <label for="id_description" class="form-label fw-semibold">Описание</label>
-                        {{ form.description|add_class:"form-control" }}
-                        {% if form.description.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.description.errors %}
-                                    <div>{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Сумма -->
-                    <div class="mb-3">
-                        <label for="id_total" class="form-label fw-semibold">Сумма</label>
-                        {{ form.total|add_class:"form-control" }}
-                        {% if form.total.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.total.errors %}
-                                    <div>{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
+                    <div class="row">
+                        <!-- Дата -->
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.date.id_for_label }}" class="form-label fw-semibold">Дата</label>
+                            {{ form.date|add_class:"form-control datepicker" }}
+                        </div>
+                        <!-- Сумма -->
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.total.id_for_label }}" class="form-label fw-semibold">Сумма</label>
+                            {{ form.total|add_class:"form-control" }}
+                        </div>
                     </div>
 
                     <!-- Тип операции -->
                     <div class="mb-3">
-                        <label for="id_operation_type" class="form-label fw-semibold">Тип операции</label>
+                        <label for="{{ form.operation_type.id_for_label }}" class="form-label fw-semibold">Тип операции</label>
                         {{ form.operation_type|add_class:"form-select" }}
-                        {% if form.operation_type.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.operation_type.errors %}
-                                    <div>{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
                     </div>
 
                     <!-- Категория -->
-                    <div class="mb-4">
-                        <label for="id_category" class="form-label fw-semibold">{{ form.category.label }}</label>
+                    <div class="mb-3">
+                        <label for="{{ form.category.id_for_label }}" class="form-label fw-semibold">Категория</label>
                         {{ form.category|add_class:"form-select" }}
-                        {% if form.category.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.category.errors %}
-                                    <div>{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
+                    </div>
+
+                    <!-- Описание -->
+                    <div class="mb-4">
+                        <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold">Описание</label>
+                        {{ form.description|add_class:"form-control"|attr:"rows:3" }}
                     </div>
 
                     <div class="text-center">
@@ -89,17 +83,40 @@
 </div>
 {% endblock %}
 
-{% block extra_css %}
-{{ block.super }}
-<link rel="stylesheet" href="{% static 'personal_finance/css/styles.css' %}">
-<style>
-    .category-badge {
-        transition: all 0.2s ease;
-        cursor: pointer;
-        user-select: none;
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const typeSelect = document.querySelector('select[name="operation_type"]');
+    const categorySelect = document.querySelector('select[name="category"]');
+    // Теперь это поле не будет пустым, так как мы передали user во вьюхе
+    const categoryTypes = {{ form.category_types_map|default:"{}"|safe }};
+
+    function filterCategories(isFirstLoad = false) {
+        const selectedType = typeSelect.value;
+        const options = categorySelect.options;
+
+        for (let i = 0; i < options.length; i++) {
+            const opt = options[i];
+            if (opt.value === "") continue;
+
+            const catType = categoryTypes[opt.value];
+            if (catType === selectedType) {
+                opt.style.display = "block";
+                opt.disabled = false;
+            } else {
+                opt.style.display = "none";
+                opt.disabled = true;
+                // Сбрасываем только если пользователь сам меняет тип, а не при загрузке
+                if (!isFirstLoad && opt.selected) categorySelect.value = "";
+            }
+        }
     }
-    .category-badge:hover {
-        transform: scale(1.05);
+
+    if (typeSelect && categorySelect) {
+        typeSelect.addEventListener('change', () => filterCategories(false));
+        // Первый запуск — сохраняем текущий выбор из базы
+        filterCategories(true);
     }
-</style>
+});
+</script>
 {% endblock %}

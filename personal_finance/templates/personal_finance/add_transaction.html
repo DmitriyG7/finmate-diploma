@@ -14,7 +14,6 @@
                 <form method="post" novalidate>
                     {% csrf_token %}
 
-                    <!-- Блок для общих ошибок формы (например, ошибки из сервиса или нехватка баланса) -->
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger shadow-sm">
                             {% for error in form.non_field_errors %}
@@ -23,10 +22,39 @@
                         </div>
                     {% endif %}
 
-                    <!-- Кошелек (КРИТИЧНО: Без него форма не сохранится) -->
+                    <!-- WALLET -->
                     <div class="mb-3">
-                        <label for="{{ form.wallet.id_for_label }}" class="form-label fw-semibold">Счет списания/зачисления</label>
-                        {{ form.wallet|add_class:"form-select" }}
+                        <label class="form-label fw-semibold">Счет</label>
+
+                        <select name="wallet" class="form-select">
+                            {% if form.wallet.field.queryset %}
+                                <option value="" disabled
+                                    {% if not form.wallet.value and not form.initial.wallet %}selected{% endif %}>
+                                    Выберите счёт
+                                </option>
+
+                                {% for wallet in form.wallet.field.queryset %}
+                                    <option value="{{ wallet.id }}"
+                                        {% if form.wallet.value %}
+                                            {% if form.wallet.value|stringformat:"s" == wallet.id|stringformat:"s" %}
+                                                selected
+                                            {% endif %}
+                                        {% else %}
+                                            {% if form.initial.wallet and form.initial.wallet.id == wallet.id %}
+                                                selected
+                                            {% endif %}
+                                        {% endif %}>
+                                        {{ wallet.name }} ({{ wallet.balance }})
+                                    </option>
+                                {% endfor %}
+
+                                <option value="create_new">➕ Создать новый счёт</option>
+                            {% else %}
+                                <option value="">Нет доступных счетов</option>
+                                <option value="create_new">➕ Создать счёт</option>
+                            {% endif %}
+                        </select>
+
                         {% if form.wallet.errors %}
                             <div class="text-danger small mt-1">
                                 {{ form.wallet.errors|first }}
@@ -34,57 +62,46 @@
                         {% endif %}
                     </div>
 
+                    <!-- DATE + TOTAL -->
                     <div class="row">
-                        <!-- Дата -->
                         <div class="col-md-6 mb-3">
-                            <label for="{{ form.date.id_for_label }}" class="form-label fw-semibold">Дата</label>
-                            {{ form.date|add_class:"form-control" }}
-                            {% if form.date.errors %}
-                                <div class="text-danger small mt-1">{{ form.date.errors|first }}</div>
-                            {% endif %}
+                            <label class="form-label fw-semibold">Дата</label>
+                            {{ form.date|add_class:"form-control datepicker" }}
                         </div>
 
-                        <!-- Сумма -->
                         <div class="col-md-6 mb-3">
-                            <label for="{{ form.total.id_for_label }}" class="form-label fw-semibold">Сумма</label>
+                            <label class="form-label fw-semibold">Сумма</label>
                             {{ form.total|add_class:"form-control" }}
-                            {% if form.total.errors %}
-                                <div class="text-danger small mt-1">{{ form.total.errors|first }}</div>
-                            {% endif %}
                         </div>
                     </div>
 
-                    <!-- Тип операции -->
+                    <!-- TYPE -->
                     <div class="mb-3">
-                        <label for="{{ form.operation_type.id_for_label }}" class="form-label fw-semibold">Тип операции</label>
+                        <label class="form-label fw-semibold">Тип операции</label>
                         {{ form.operation_type|add_class:"form-select" }}
-                        {% if form.operation_type.errors %}
-                            <div class="text-danger small mt-1">{{ form.operation_type.errors|first }}</div>
-                        {% endif %}
                     </div>
 
-                    <!-- Категории -->
-                    <div class="mb-3">
-                        <label for="{{ form.category.id_for_label }}" class="form-label fw-semibold">Категория</label>
+                    <!-- CATEGORY -->
+                    <div class="mb-3" id="category-block">
+                        <label class="form-label fw-semibold">Категория</label>
                         {{ form.category|add_class:"form-select" }}
-                        {% if form.category.errors %}
-                            <div class="text-danger small mt-1">{{ form.category.errors|first }}</div>
-                        {% endif %}
                     </div>
 
-                    <!-- Описание -->
+                    <!-- DESCRIPTION -->
                     <div class="mb-4">
-                        <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold">Описание (необязательно)</label>
+                        <label class="form-label fw-semibold">Описание</label>
                         {{ form.description|add_class:"form-control"|attr:"rows:3" }}
-                        {% if form.description.errors %}
-                            <div class="text-danger small mt-1">{{ form.description.errors|first }}</div>
-                        {% endif %}
                     </div>
 
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg px-5">Сохранить операцию</button>
-                        <a href="{% url 'home' %}" class="btn btn-outline-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-primary btn-lg px-5">
+                            Сохранить операцию
+                        </button>
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+                            Отмена
+                        </a>
                     </div>
+
                 </form>
             </div>
         </div>
@@ -96,84 +113,75 @@
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    // 1. Маска суммы
-    const amountInput = document.querySelector('.money-mask');
-    if (amountInput) {
-        Inputmask({
-            alias: "decimal",
-            groupSeparator: " ",
-            radixPoint: ".",
-            autoGroup: true,
-            digits: 2,
-            digitsOptional: false,
-            placeholder: "0",
-            rightAlign: false,
-            suffix: " ₽",
-            removeMaskOnSubmit: true
-        }).mask(amountInput);
-    }
 
-    // 2. Маска даты
-    const dateInput = document.querySelector('.date-mask');
-    if (dateInput) {
-        Inputmask({
-            alias: "datetime",
-            inputFormat: "dd.mm.yyyy",   // Формат ввода
-            placeholder: "дд.мм.гггг",
-            min: "01.01.1900",
-            max: "31.12.2099",
-            leapday: "29.02.",          // Корректная обработка 29 февраля
-            showMaskOnHover: false,
-            // Strict mode не дает завершить ввод, если дата невалидна (например, 31.04)
-            prevalidation: function (result, item, pos, strict, opts) {
-                return result;
-            }
-        }).mask(dateInput);
-    }
-
-    // 3. Динамическая фильтрация категорий
     const typeSelect = document.querySelector('select[name="operation_type"]');
     const categorySelect = document.querySelector('select[name="category"]');
+    const categoryBlock = document.getElementById("category-block");
 
-    // Передаем карту типов из Python в JS через JSON
     const categoryTypes = {{ form.category_types_map|default:"{}"|safe }};
 
-    function filterCategories() {
-        const selectedType = typeSelect.value; // 'income' или 'expense'
-        const options = categorySelect.options;
+    function handleUI() {
+        const selectedType = typeSelect.value;
 
-        for (let i = 0; i < options.length; i++) {
-            const opt = options[i];
-            if (opt.value === "") continue; // Не трогаем "Выберите категорию"
+        // 🔥 если перевод — скрываем категории полностью
+        if (selectedType === "transfer") {
+            categoryBlock.style.display = "none";
+            return;
+        } else {
+            categoryBlock.style.display = "block";
+        }
+
+        // обычная фильтрация
+        for (let opt of categorySelect.options) {
+            if (!opt.value) continue;
 
             const catType = categoryTypes[opt.value];
+
             if (catType === selectedType) {
                 opt.style.display = "block";
                 opt.disabled = false;
             } else {
                 opt.style.display = "none";
                 opt.disabled = true;
-                // Если выбранная категория теперь скрыта — сбрасываем выбор
-                if (opt.selected) categorySelect.value = "";
+
+                if (opt.selected) {
+                    categorySelect.value = "";
+                }
             }
         }
     }
 
-    if (typeSelect && categorySelect) {
-        typeSelect.addEventListener('change', filterCategories);
-        filterCategories(); // Запускаем один раз при загрузке
+    if (typeSelect) {
+        typeSelect.addEventListener("change", handleUI);
+        handleUI();
     }
+
+    // переход на создание кошелька
+    const walletSelect = document.querySelector('select[name="wallet"]');
+
+    if (walletSelect) {
+        walletSelect.addEventListener("change", function () {
+            if (this.value === "create_new") {
+                window.location.href = "{% url 'add_wallet' %}";
+            }
+        });
+    }
+
 });
 </script>
 {% endblock %}
 
+
 {% block extra_css %}
 <style>
-    /* Делаем форму чуть более современной */
-    .card { border: none; }
-    .form-control:focus, .form-select:focus {
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1);
-    }
+.card {
+    border: none;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1);
+}
 </style>
 {% endblock %}
