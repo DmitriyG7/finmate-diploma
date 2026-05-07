@@ -3,6 +3,7 @@ import math
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.utils.text import slugify
+from django.urls import reverse
 
 from finmate import settings
 from mdeditor.fields import MDTextField
@@ -55,6 +56,9 @@ class Post(models.Model):
             self.slug = slugify(self.title)
         self.read_time = self._calculate_read_time()
         super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse('blog:post_detail', kwargs={"slug": self.slug})
 
     def _calculate_read_time(self):
         if not self.content:

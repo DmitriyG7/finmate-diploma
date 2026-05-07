@@ -139,6 +139,17 @@
                                 </li>
                             </ul>
                         </li>
+                        <li class="nav-item position-relative">
+                            <a class="nav-link" href="{% url 'notifications:list' %}">
+                                🔔 Уведомления
+                                {% if unread_notifications_count > 0 %}
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                        {{ unread_notifications_count }}
+                                        <span class="visually-hidden">непрочитанных сообщений</span>
+                                    </span>
+                                {% endif %}
+                            </a>
+                        </li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="{% url 'users:login' %}">Войти</a></li>
                     {% endif %}

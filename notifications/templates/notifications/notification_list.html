@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Ваши уведомления</h1>
+        {% if object_list %}
+        <button id="mark-all-read" class="btn btn-outline-secondary btn-sm" 
+                data-url="{% url 'notifications:mark_all_read' %}">
+            Отметить все как прочитанные
+        </button>
+        {% endif %}
+    </div>
+
+    <div class="list-group">
+        {% for node in object_list %}
+            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if not node.is_read %}list-group-item-light border-start border-primary border-4{% endif %}" 
+                 id="notification-{{ node.id }}">
+                
+                <div>
+                    <strong>{{ node.actor.username }}</strong> 
+                    {{ node.verb }} 
+                    {% if node.content_object %}
+                        <a href="{{ node.content_object.get_absolute_url }}" class="text-decoration-none">
+                            "{{ node.content_object.title|default:"объект" }}"
+                        </a>
+                    {% endif %}
+                    <br>
+                    <small class="text-muted">{{ node.created_at|timesince }} назад</small>
+                </div>
+
+                {% if not node.is_read %}
+                    <button class="btn btn-sm btn-primary mark-read-btn" 
+                            data-id="{{ node.id }}"
+                            data-url="{% url 'notifications:mark_as_read' node.id %}">
+                        Ок
+                    </button>
+                {% endif %}
+            </div>
+        {% empty %}
+            <div class="text-center py-5">
+                <p class="text-muted">У вас пока нет уведомлений</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Пометка одного уведомления
+    const readButtons = document.querySelectorAll('.mark-read-btn');
+    readButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const noteId = this.dataset.id;
+            const url = this.dataset.url;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const item = document.getElementById(`notification-${noteId}`);
+                    item.classList.remove('list-group-item-light', 'border-start', 'border-primary', 'border-4');
+                    this.remove(); // Удаляем кнопку "Ок"
+                    
+                    // Уменьшаем счетчик на колокольчике (если он есть)
+                    const badge = document.querySelector('.badge');
+                    if (badge) {
+                        let count = parseInt(badge.innerText);
+                        if (count > 1) {
+                            badge.innerText = count - 1;
+                        } else {
+                            badge.remove();
+                        }
+                    }
+                }
+            });
+        });
+    });
+
+    // 2. Отметить все как прочитанные
+    const markAllBtn = document.getElementById('mark-all-read');
+    if (markAllBtn) {
+        markAllBtn.addEventListener('click', function() {
+            fetch(this.dataset.url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            })
+            .then(() => location.reload()); // Просто перезагружаем страницу
+        });
+    }
+});
+</script>
+{% endblock %}
