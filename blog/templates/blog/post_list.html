@@ -5,14 +5,30 @@
     <div class="row">
         {% for post in posts %}
         <div class="col-md-6 mb-4">
-            <div class="card h-100">
+            <div class="card h-100 position-relative">
+
+               <button class="like-button position-absolute top-0 end-0 m-2"
+                    data-id="{{ post.id }}"
+                    data-model="post"
+                    data-url="{% url 'interactions:like_toggle' 'post' post.id %}"
+                    style="background: none; border: none; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; padding: 0;">
+
+                <span class="like-icon" style="font-size: 1.4rem;">
+                    {% if post.user_liked %}❤️{% else %}🤍{% endif %}
+                </span>
+
+                <small class="like-count" style="font-size: 0.8rem; display: block; margin-top: 2px; font-weight: bold; color: #333;">
+                    {{ post.likes_count }}
+                </small>
+                </button>
+
                 <div class="card-body">
-                    <h5 class="card-title">{{ post.title }}</h5>
-                    <p class="text-muted small">
+                    <h5 class="card-title pe-5">{{ post.title }}</h5> <p class="text-muted small">
                         Автор: {{ post.author.username }} | {{ post.get_post_type_display }}
                     </p>
                     <p class="card-text">{{ post.content|truncatewords:30 }}</p>
                 </div>
+
                 <div class="card-footer bg-transparent border-top-0">
                     <a href="{% url 'blog:post_detail' post.slug %}" class="btn btn-primary">Читать далее</a>
                     <span class="float-end text-muted">{{ post.read_time }} мин.</span>
@@ -22,4 +38,77 @@
         {% endfor %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Сюда нужно вставить ТОТ ЖЕ САМЫЙ код скрипта, который мы писали для post_detail.
+    // Если ты не хочешь его дублировать, лучше вынести его в отдельный файл static/js/likes.js
+    // и подключать через <script src="...">
+
+    // Но для проверки сейчас просто скопируй его сюда:
+    document.addEventListener('DOMContentLoaded', function() {
+        const likeButtons = document.querySelectorAll('.like-button');
+        likeButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = this.dataset.url;
+                const icon = this.querySelector('.like-icon');
+                const countSpan = this.querySelector('.like-count');
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json'
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        icon.textContent = data.liked ? '❤️' : '🤍';
+                        countSpan.textContent = data.count;
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
+    });
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Увеличиваем расстояние между иконкой и числом */
+    .like-count {
+        margin-top: 5px !important; /* Добавляем отступ сверху */
+        font-weight: bold;
+        color: #555;
+    }
+
+    /* Эффект при наведении на кнопку для лучшего UX */
+    .like-button:hover {
+        transform: scale(1.1);
+        transition: transform 0.2s;
+        background: rgba(255,255,255,1) !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+</style>
 {% endblock %}

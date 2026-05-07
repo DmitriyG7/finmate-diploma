@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'groups',
     'mdeditor',
     'blog',
+    'interactions',
     'widget_tweaks',
 ]
 

@@ -39,6 +39,102 @@
         <div class="entry-content">
             {{ post.content|markdown_to_html }}
         </div>
+        <!-- Контейнер для лайка -->
+        <div class="like-section">
+            <button class="like-button"
+                    data-id="{{ post.id }}"
+                    data-model="post"
+                    data-url="{% url 'interactions:like_toggle' 'post' post.id %}">
+
+                <span class="like-icon">
+                    {% if user_liked %}❤️{% else %}🤍{% endif %}
+                </span>
+
+                <span class="like-count">
+                    {{ post.likes_count }}
+                </span>
+            </button>
+        </div>
     </article>
 </div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Находим все кнопки лайков на странице
+    const likeButtons = document.querySelectorAll('.like-button');
+
+    likeButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const url = this.dataset.url;
+            const icon = this.querySelector('.like-icon');
+            const countSpan = this.querySelector('.like-count');
+
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(response => {
+
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Ошибка сервера');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+
+                icon.textContent = data.liked ? '❤️' : '🤍';
+                countSpan.textContent = data.count;
+            })
+            .catch(error => {
+                alert(error.message);
+            });
+        });
+    });
+});
+
+// Функция для получения CSRF-токена (стандарт для Django + JS)
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
+
+
+{% block extra_css %}
+<style>
+    .like-button {
+        cursor: pointer;
+        background: none;
+        border: 1px solid #ddd;
+        padding: 5px 10px;
+        border-radius: 20px;
+        transition: 0.3s;
+    }
+    .like-button:hover {
+        background-color: #f8f9fa;
+    }
+</style>
 {% endblock %}

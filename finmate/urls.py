@@ -26,7 +26,8 @@ urlpatterns = [
     path('users/', include('users.urls', namespace='users')),
     path('select2/', include('django_select2.urls')),
     path('mdeditor/', include('mdeditor.urls')),
-    path('posts/', include('blog.urls'))
+    path('posts/', include('blog.urls')),
+    path('interactions/', include('interactions.urls'))
 
 ]
 

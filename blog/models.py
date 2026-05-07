@@ -1,5 +1,6 @@
 import math
 
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.utils.text import slugify
 
@@ -32,12 +33,14 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="Создана")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Изменена")
     read_time = models.PositiveIntegerField(default=0)
+    likes_count = models.PositiveIntegerField(default=0)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="posts",
                                verbose_name="Автор")
     linked_category = models.ForeignKey("personal_finance.Category", on_delete=models.SET_NULL, null=True,
                                         blank=True, related_name="posts", verbose_name="Связанная категория")
 
     objects = PostQuerySet.as_manager()
+    likes = GenericRelation('interactions.Like')
 
     class Meta:
         verbose_name = "Статья"
