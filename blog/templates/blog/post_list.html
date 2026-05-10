@@ -1,37 +1,66 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container mt-4">
-    <h1>Блог и база знаний</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 fw-bold mb-0">Блог и база знаний</h1>
+        <div class="d-flex gap-2">
+            <a href="{% url 'blog:user_posts' %}" class="btn btn-outline-primary d-flex align-items-center">
+                <i class="bi bi-person-lines-fill me-2"></i>Мои статьи
+            </a>
+            <a href="{% url 'blog:post_create' %}" class="btn btn-success d-flex align-items-center">
+                <i class="bi bi-pencil-square me-2"></i>Написать статью
+            </a>
+        </div>
+    </div>
+
     <div class="row">
         {% for post in posts %}
+<!--        {% if user.is_staff and post.has_unreviewed_changes %}-->
+<!--            <div class="alert alert-warning d-flex justify-content-between align-items-center mt-2">-->
+<!--                <span><i class="bi bi-exclamation-triangle-fill"></i> У статьи есть неопубликованные правки!</span>-->
+<!--                <a href="{% url 'blog:post_review' post.pk %}" class="btn btn-sm btn-warning">Проверить правки</a>-->
+<!--            </div>-->
+<!--        {% endif %}-->
         <div class="col-md-6 mb-4">
-            <div class="card h-100 position-relative">
-
+            <div class="card h-100 position-relative shadow-sm border-0">
                <button class="like-button position-absolute top-0 end-0 m-2"
                     data-id="{{ post.id }}"
                     data-model="post"
                     data-url="{% url 'interactions:like_toggle' 'post' post.id %}"
-                    style="background: none; border: none; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; padding: 0;">
+                    style="background: white; border-radius: 50%; border: none; z-index: 10; width: 40px; height: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
 
-                <span class="like-icon" style="font-size: 1.4rem;">
+                <span class="like-icon" style="font-size: 1.2rem;">
                     {% if post.user_liked %}❤️{% else %}🤍{% endif %}
                 </span>
-
-                <small class="like-count" style="font-size: 0.8rem; display: block; margin-top: 2px; font-weight: bold; color: #333;">
+                <small class="like-count" style="font-size: 0.75rem; font-weight: bold; color: #333;">
                     {{ post.likes_count }}
                 </small>
                 </button>
 
+                {% if user.is_staff and post.has_unreviewed_changes %}
+                <a href="{% url 'blog:post_review' post.pk %}"
+                   class="position-absolute end-0 review-alert-indicator"
+                   style="top: 65px; margin-right: 12px;"
+                   data-bs-toggle="tooltip"
+                   title="Проверить предложенные правки">
+                    <div class="alert-pulse">
+                        <i class="bi bi-patch-exclamation-fill text-warning fs-4"></i>
+                    </div>
+                </a>
+                {% endif %}
+
                 <div class="card-body">
-                    <h5 class="card-title pe-5">{{ post.title }}</h5> <p class="text-muted small">
-                        Автор: {{ post.author.username }} | {{ post.get_post_type_display }}
+                    <h5 class="card-title pe-5 fw-bold">{{ post.title }}</h5>
+                    <p class="text-muted small">
+                        <i class="bi bi-person me-1"></i>{{ post.author.username }} |
+                        <span class="badge bg-light text-dark border">{{ post.get_post_type_display }}</span>
                     </p>
-                    <p class="card-text">{{ post.content|truncatewords:30 }}</p>
+                    <p class="card-text text-secondary">{{ post.content|truncatewords:25 }}</p>
                 </div>
 
-                <div class="card-footer bg-transparent border-top-0">
-                    <a href="{% url 'blog:post_detail' post.slug %}" class="btn btn-primary">Читать далее</a>
-                    <span class="float-end text-muted">{{ post.read_time }} мин.</span>
+                <div class="card-footer bg-transparent border-top-0 pb-3">
+                    <a href="{% url 'blog:post_detail' post.slug %}" class="btn btn-primary btn-sm px-4">Читать далее</a>
+                    <span class="float-end text-muted small"><i class="bi bi-clock me-1"></i>{{ post.read_time }} мин.</span>
                 </div>
             </div>
         </div>
@@ -42,12 +71,13 @@
 
 {% block extra_js %}
 <script>
-    // Сюда нужно вставить ТОТ ЖЕ САМЫЙ код скрипта, который мы писали для post_detail.
-    // Если ты не хочешь его дублировать, лучше вынести его в отдельный файл static/js/likes.js
-    // и подключать через <script src="...">
-
-    // Но для проверки сейчас просто скопируй его сюда:
     document.addEventListener('DOMContentLoaded', function() {
+
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+
         const likeButtons = document.querySelectorAll('.like-button');
         likeButtons.forEach(button => {
             button.addEventListener('click', function(e) {
@@ -103,12 +133,41 @@
         color: #555;
     }
 
-    /* Эффект при наведении на кнопку для лучшего UX */
     .like-button:hover {
         transform: scale(1.1);
         transition: transform 0.2s;
         background: rgba(255,255,255,1) !important;
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .review-alert-indicator {
+        z-index: 10;
+        text-decoration: none;
+        transition: transform 0.2s ease;
+    }
+
+    .review-alert-indicator:hover {
+        transform: scale(1.2);
+    }
+
+    /* Эффект мягкого мигания для привлечения внимания модератора */
+    .alert-pulse {
+        animation: pulse-yellow 2s infinite;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    @keyframes pulse-yellow {
+        0% { transform: scale(0.95); filter: drop-shadow(0 0 0 rgba(255, 193, 7, 0.7)); }
+        70% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(255, 193, 7, 0)); }
+        100% { transform: scale(0.95); filter: drop-shadow(0 0 0 rgba(255, 193, 7, 0)); }
+    }
+
+    /* Дополнительный отступ для заголовка, чтобы он не упирался в блок иконок справа */
+    .card-title {
+        padding-right: 45px;
     }
 </style>
 {% endblock %}

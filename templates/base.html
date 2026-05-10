@@ -87,12 +87,18 @@
             <a class="navbar-brand fw-bold fs-4" href="{% url 'home' %}">
                 <i class="bi bi-wallet2 text-primary me-2"></i>FinMate
             </a>
+
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
+
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     {% if user.is_authenticated %}
+                        <li class="nav-item px-2">
+                            <a class="nav-link {% if request.resolver_match.namespace == 'blog' %}active{% endif %}"
+   href="{% url 'blog:post_list' %}">Блог</a>
+                        </li>
                         <li class="nav-item px-2">
                             <a class="nav-link {% if request.resolver_match.url_name == 'wallet_list' %}active{% endif %}"
                                href="{% url 'wallet_list' %}">Счета</a>
@@ -128,6 +134,9 @@
                             <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2" aria-labelledby="avatarMenu">
                                 <li class="px-3 py-2 fw-bold text-muted small text-uppercase">Настройки</li>
                                 <li><a class="dropdown-item" href="{% url 'users:profile' %}"><i class="bi bi-person me-2"></i>Профиль</a></li>
+
+                                <li><a class="dropdown-item" href="{% url 'blog:user_posts' %}"><i class="bi bi-journal-text me-2"></i>Мои статьи</a></li>
+
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="post" action="{% url 'users:logout' %}" class="p-0 m-0">

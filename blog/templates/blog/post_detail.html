@@ -10,6 +10,29 @@
         </ol>
     </nav>
 
+{% if user.is_staff and post.status == 'checking' and not post.is_verified %}
+    <div class="alert alert-info d-flex justify-content-between align-items-center">
+        <div>
+            <strong>Модерация:</strong> Эта статья ожидает первой публикации.
+        </div>
+        <form action="{% url 'blog:post_update' post.slug %}" method="post" class="m-0">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="published">
+            <input type="hidden" name="title" value="{{ post.title }}">
+            <input type="hidden" name="content" value="{{ post.content }}">
+            <input type="hidden" name="post_type" value="{{ post.post_type }}">
+            <button type="submit" class="btn btn-success btn-sm">Одобрить и опубликовать</button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if post.has_unreviewed_changes and user.is_staff %}
+    <div class="alert alert-warning d-flex justify-content-between align-items-center">
+        <span>У этой статьи есть предложенные правки в тексте.</span>
+        <a href="{% url 'blog:post_review' post.pk %}" class="btn btn-warning btn-sm">Сравнить версии</a>
+    </div>
+    {% endif %}
+
     <article>
         <header class="mb-4">
             <h1 class="fw-bolder mb-1">{{ post.title }}</h1>
@@ -36,105 +59,219 @@
         </div>
         {% endif %}
 
+        {% if request.user == post.author or request.user.is_staff %}
+            <a href="{% url 'blog:post_update' post.slug %}" class="btn btn-outline-warning">Редактировать</a>
+        {% endif %}
+
         <div class="entry-content">
             {{ post.content|markdown_to_html }}
         </div>
-        <!-- Контейнер для лайка -->
-        <div class="like-section">
-            <button class="like-button"
-                    data-id="{{ post.id }}"
-                    data-model="post"
-                    data-url="{% url 'interactions:like_toggle' 'post' post.id %}">
 
-                <span class="like-icon">
-                    {% if user_liked %}❤️{% else %}🤍{% endif %}
-                </span>
-
-                <span class="like-count">
-                    {{ post.likes_count }}
-                </span>
+        <div class="like-section my-3 pb-3 border-bottom">
+            <button class="like-button btn btn-sm btn-outline-secondary"
+                    data-url="{% url 'interactions:like_toggle' 'post' post.id %}"
+                    style="border-radius: 20px;">
+                <span class="like-icon">{% if user_liked %}❤️{% else %}🤍{% endif %}</span>
+                <span class="like-count">{{ post.likes_count }}</span>
             </button>
         </div>
+
+        <hr>
+
+        <h3>Комментарии (<span id="comment-count-num">{{ post.comments.count }}</span>)</h3>
+
+        <div id="comments-wrapper" class="mb-4">
+            {% for comment in comments %}
+                {% if not comment.parent %}
+                    <div class="card mb-3 shadow-sm" id="comment-{{ comment.id }}">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">
+                                {{ comment.author.username }} <small>{{ comment.created_at|timesince }} назад</small>
+                            </h6>
+                            <p class="card-text">{{ comment.text }}</p>
+
+                            {% if user.is_authenticated %}
+                                <button class="btn btn-sm btn-link p-0 reply-btn text-decoration-none"
+                                        data-id="{{ comment.id }}"
+                                        data-author="{{ comment.author.username }}">Ответить</button>
+                            {% endif %}
+
+                            <div class="reply-form-placeholder mt-2"></div>
+
+                            <div class="ms-4 mt-2 border-start ps-3" id="replies-{{ comment.id }}">
+                                {% for reply in comment.replies.all %}
+                                    <div class="mb-2 small border-bottom pb-1">
+                                        <strong>{{ reply.author.username }}</strong>: {{ reply.text }}
+                                        {% if user.is_authenticated %}
+                                            <button class="btn btn-sm btn-link p-0 reply-btn text-decoration-none ms-2"
+                                                    data-id="{{ comment.id }}"
+                                                    data-author="{{ reply.author.username }}"
+                                                    style="font-size: 0.7rem;">(ответить)</button>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        {% if user.is_authenticated %}
+            <div class="card p-3 bg-light shadow-sm" id="main-form-container">
+                <h5 id="reply-title" class="h6">Оставить комментарий</h5>
+                <form id="comment-form" data-url="{% url 'interactions:add_comment' 'post' post.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="parent_id" id="parent-id-input" value="">
+                    <div class="mb-2">
+                        {{ comment_form.text }}
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-primary btn-sm">Отправить</button>
+                        <button type="button" id="cancel-reply" class="btn btn-outline-secondary btn-sm d-none">Отмена</button>
+                    </div>
+                </form>
+            </div>
+        {% else %}
+            <p class="text-center py-3"><a href="{% url 'login' %}">Войдите</a>, чтобы оставить комментарий.</p>
+        {% endif %}
     </article>
 </div>
 {% endblock %}
 
-
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Находим все кнопки лайков на странице
-    const likeButtons = document.querySelectorAll('.like-button');
-
-    likeButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-
-            const url = this.dataset.url;
-            const icon = this.querySelector('.like-icon');
-            const countSpan = this.querySelector('.like-count');
-
-
-            fetch(url, {
-                method: 'POST',
-                headers: {
-
-                    'X-CSRFToken': getCookie('csrftoken'),
-                    'Content-Type': 'application/json'
-                },
-            })
-            .then(response => {
-
-                if (!response.ok) {
-                    return response.json().then(data => {
-                        throw new Error(data.error || 'Ошибка сервера');
-                    });
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
                 }
-                return response.json();
-            })
-            .then(data => {
-
-                icon.textContent = data.liked ? '❤️' : '🤍';
-                countSpan.textContent = data.count;
-            })
-            .catch(error => {
-                alert(error.message);
-            });
-        });
-    });
-});
-
-// Функция для получения CSRF-токена (стандарт для Django + JS)
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
             }
         }
+        return cookieValue;
     }
-    return cookieValue;
-}
+
+    function escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = value ?? '';
+        return div.innerHTML;
+    }
+
+    const commentsWrapper = document.getElementById('comments-wrapper');
+    const countNum = document.getElementById('comment-count-num');
+
+    function createReplyForm(parentId, authorName) {
+        return `
+            <div class="card p-2 border-0 bg-light mb-2 dynamic-reply-container">
+                <small class="text-muted">Ответ для <b>${authorName}</b></small>
+                <form class="dynamic-reply-form" data-url="{% url 'interactions:add_comment' 'post' post.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="parent_id" value="${parentId}">
+                    <textarea name="text" class="form-control form-control-sm mb-2" rows="2" required placeholder="Ваш ответ..."></textarea>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm">Отправить</button>
+                        <button type="button" class="btn btn-link btn-sm text-muted cancel-dynamic">Отмена</button>
+                    </div>
+                </form>
+            </div>
+        `;
+    }
+
+    // --- ДЕЛЕГИРОВАНИЕ КЛИКОВ (Ответить и Отмена) ---
+    document.addEventListener('click', function(e) {
+        // Клик на "Ответить"
+        if (e.target.classList.contains('reply-btn')) {
+            const commentId = e.target.dataset.id;
+            const author = e.target.dataset.author;
+            const card = document.getElementById(`comment-${commentId}`);
+            const placeholder = card.querySelector('.reply-form-placeholder');
+
+            document.querySelectorAll('.dynamic-reply-container').forEach(el => el.remove());
+
+            placeholder.innerHTML = createReplyForm(commentId, author);
+            placeholder.querySelector('textarea').focus();
+        }
+
+        // Клик на "Отмена" в динамической форме
+        if (e.target.classList.contains('cancel-dynamic')) {
+            e.target.closest('.dynamic-reply-container').remove();
+        }
+
+        // Логика лайков
+        if (e.target.closest('.like-button')) {
+            const btn = e.target.closest('.like-button');
+            fetch(btn.dataset.url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.querySelector('.like-icon').textContent = data.liked ? '❤️' : '🤍';
+                btn.querySelector('.like-count').textContent = data.count;
+            });
+        }
+    });
+
+    // --- УНИВЕРСАЛЬНАЯ ОТПРАВКА (Для всех форм) ---
+    document.addEventListener('submit', function(e) {
+        if (e.target.id === 'comment-form' || e.target.classList.contains('dynamic-reply-form')) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const pId = formData.get('parent_id');
+
+            if (!pId || pId === "") formData.delete('parent_id');
+
+            fetch(form.dataset.url || form.getAttribute('data-url'), {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (pId) {
+                        // Вставляем ответ
+                        const repliesDiv = document.getElementById(`replies-${pId}`);
+                        const safeAuthor = escapeHtml(data.author);
+                        const safeText = escapeHtml(data.text);
+                        const replyHtml = `
+                            <div class="mb-2 small border-bottom pb-1">
+                                <strong>${safeAuthor}</strong>: ${safeText}
+                                <button class="btn btn-sm btn-link p-0 reply-btn text-decoration-none ms-2"
+                                        data-id="${pId}" data-author="${safeAuthor}" style="font-size: 0.7rem;">(ответить)</button>
+                            </div>`;
+                        repliesDiv.insertAdjacentHTML('beforeend', replyHtml);
+                        form.closest('.dynamic-reply-container').remove();
+                    } else {
+                        const safeAuthor = escapeHtml(data.author);
+                        const safeText = escapeHtml(data.text);
+                        const newCommentHtml = `
+                            <div class="card mb-3 shadow-sm border-primary" id="comment-${data.comment_id}">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">${safeAuthor} <small>только что</small></h6>
+                                    <p class="card-text">${safeText}</p>
+                                    <button class="btn btn-sm btn-link p-0 reply-btn text-decoration-none"
+                                            data-id="${data.comment_id}" data-author="${safeAuthor}">Ответить</button>
+                                    <div class="reply-form-placeholder mt-2"></div>
+                                    <div class="ms-4 mt-2 border-start ps-3" id="replies-${data.comment_id}"></div>
+                                </div>
+                            </div>`;
+                        commentsWrapper.insertAdjacentHTML('beforeend', newCommentHtml);
+                        document.getElementById(`comment-${data.comment_id}`).scrollIntoView({ behavior: 'smooth' });
+                        form.reset();
+                    }
+                    countNum.innerText = parseInt(countNum.innerText) + 1;
+                }
+            });
+        }
+    });
+});
 </script>
-{% endblock %}
-
-
-{% block extra_css %}
-<style>
-    .like-button {
-        cursor: pointer;
-        background: none;
-        border: 1px solid #ddd;
-        padding: 5px 10px;
-        border-radius: 20px;
-        transition: 0.3s;
-    }
-    .like-button:hover {
-        background-color: #f8f9fa;
-    }
-</style>
 {% endblock %}

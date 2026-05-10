@@ -14,7 +14,6 @@ from django.db.models import Sum, Count
 import json
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from datetime import timedelta
 from django.contrib import messages
 
 import calendar
@@ -120,7 +119,7 @@ class AddTransaction(LoginRequiredMixin, CreateView):
                 description=cd.get("description", ""),
                 date = cd.get("date"),
             )
-
+            messages.success(self.request, "Транзакция создана!")
         except ValidationError as e:
             form.add_error(None, e.message if hasattr(e, "message") else str(e))
             return self.form_invalid(form)

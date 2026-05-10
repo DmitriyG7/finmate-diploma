@@ -1,5 +1,5 @@
 from django.contrib.contenttypes.models import ContentType
-
+from users.models import User
 from notifications.models import Notification
 
 
@@ -26,3 +26,12 @@ class NotificationsService:
             object_id=content_obj.id,
             content_type=ct
         ).delete()
+
+    @staticmethod
+    def notify_admins(post, verb, actor):
+        admins = User.objects.filter(is_staff=True, is_active=True)
+        notifications = [
+            Notification(recipient=admin, actor=actor, verb=verb, content_object=post)
+            for admin in admins
+        ]
+        Notification.objects.bulk_create(notifications)

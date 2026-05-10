@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{% if user.is_staff %}Модерация и мои статьи{% else %}Мои статьи{% endif %}</h1>
+        <a href="{% url 'blog:post_create' %}" class="btn btn-primary">Написать еще</a>
+    </div>
+
+    <div class="list-group">
+        {% for post in posts %}
+            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-1">
+                        {{ post.title }}
+                        {% if post.author != user %}<small class="text-muted">(Автор: {{ post.author.username }})</small>{% endif %}
+                    </h5>
+                    <small class="text-muted">Создана: {{ post.created_at|date:"d.m.Y" }}</small>
+
+                    <div class="mt-2">
+                        {% if post.status == 'draft' %}
+                            <span class="badge bg-secondary">Черновик</span>
+                        {% elif post.status == 'checking' %}
+                            <span class="badge bg-warning text-dark">На проверке</span>
+                        {% elif post.status == 'published' %}
+                            <span class="badge bg-success">Опубликована</span>
+                        {% endif %}
+
+                        {% if post.has_unreviewed_changes %}
+                            <span class="badge bg-info">Есть правки на модерации</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <a href="{% url 'blog:post_detail' post.slug %}" class="btn btn-sm btn-outline-primary">Просмотр</a>
+
+                    {% if user.is_staff and post.has_unreviewed_changes %}
+                        <a href="{% url 'blog:post_review' post.pk %}" class="btn btn-sm btn-warning">Сравнить правки</a>
+                    {% endif %}
+
+                    {% if user == post.author or user.is_staff %}
+                        <a href="{% url 'blog:post_update' post.slug %}" class="btn btn-sm btn-outline-secondary">Редактировать</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% empty %}
+            <div class="alert alert-info">Нет статей, требующих внимания.</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
