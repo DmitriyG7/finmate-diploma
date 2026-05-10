@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Слева: Форма создания -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold small text-uppercase">Новая категория</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Название</label>
+                            {% render_field form.name class="form-control" %}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Тип</label>
+                            {% render_field form.category_type class="form-select" %}
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 shadow-sm">Добавить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Справа: Список категорий -->
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Название</th>
+                                <th class="text-center">Операций</th>
+                                <th>Тип</th>
+                                <th class="text-end pe-3">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cat in categories %}
+                            <tr>
+                                <td class="ps-3 fw-bold">
+                                    {{ cat.name }}
+                                </td>
+                                <td class="text-center">
+                                    <span class="text-muted small fw-normal">
+                                        {{ cat.transaction_count|default:0 }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {% if cat.category_type == 'income' %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %} rounded-pill">
+                                        {{ cat.get_category_type_display }}
+                                    </span>
+                                </td>
+                                <td class="text-end pe-3">
+                                    {% if cat.user %}
+                                        <a href="{% url 'category_update' cat.pk %}" class="btn btn-sm btn-outline-secondary border-0"><i class="bi bi-pencil"></i></a>
+                                        <form method="post" action="{% url 'category_delete' cat.pk %}" class="d-inline" onsubmit="return confirm('Удалить категорию? Транзакции останутся, но категория станет архивной.')">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger border-0"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-muted small" title="Системная категория"><i class="bi bi-lock-fill"></i></span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+{% endblock %}

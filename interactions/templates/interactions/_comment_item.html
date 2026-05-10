@@ -1,0 +1,33 @@
+{% for comment in comments %}
+<div class="card mb-3 shadow-sm" id="comment-{{ comment.id }}">
+    <div class="card-body">
+        <h6 class="card-subtitle mb-2 text-muted">
+            {{ comment.author.username }} 
+            <small class="ms-2 text-lowercase">{{ comment.created_at|timesince }} назад</small>
+        </h6>
+        <p class="card-text">{{ comment.text }}</p>
+
+        {% if user.is_authenticated %}
+            <button class="btn btn-sm btn-link p-0 reply-btn" 
+                    data-id="{{ comment.id }}" 
+                    data-author="{{ comment.author.username }}">
+                Ответить
+            </button>
+        {% endif %}
+
+        <div class="ms-4 mt-2 border-start ps-3" id="replies-{{ comment.id }}">
+            {% for reply in comment.replies.all %}
+                <div class="mb-2 small border-bottom pb-1">
+                    <strong>{{ reply.author.username }}</strong>: {{ reply.text }}
+                    {% if user.is_authenticated %}
+                        <button class="btn btn-sm btn-link p-0 reply-btn" 
+                                data-id="{{ comment.id }}" 
+                                data-author="{{ reply.author.username }}"
+                                style="font-size: 0.75rem;">(ответить)</button>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endfor %}

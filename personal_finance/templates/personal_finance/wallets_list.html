@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Заголовок и кнопка создания -->
+    <div class="container mt-4">
+    <!-- Заголовок и кнопки управления -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">Мои счета</h2>
+            <p class="text-muted">Общий баланс по всем счетам:
+                <span class="fw-bold text-dark">{{ total_sum|floatformat:2 }} ₽</span>
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <!-- Кнопка перевода -->
+            <a href="{% url 'wallet_transfer' %}" class="btn btn-outline-primary shadow-sm">
+                <i class="fas fa-exchange-alt me-2"></i>Перевод
+            </a>
+            <!-- Кнопка создания -->
+            <a href="{% url 'add_wallet' %}" class="btn btn-primary shadow-sm">
+                <i class="fas fa-plus me-2"></i>Новый счет
+            </a>
+        </div>
+    </div>
+
+    <!-- Список кошельков (Сетка) -->
+    <div class="row g-4">
+        {% for wallet in wallets %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm border-0 hover-shadow transition-all">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="d-flex align-items-center">
+                                <!-- Иконка в зависимости от типа (пример логики) -->
+                                <div class="bg-light p-3 rounded-3 me-3">
+                                    {% if wallet.wallet_type == 'debet' %}
+                                        <i class="fas fa-credit-card text-primary fs-4" title="Дебетовая"></i>
+                                    {% elif wallet.wallet_type == 'credit' %}
+                                        <i class="fas fa-hand-holding-usd text-danger fs-4" title="Кредитная"></i>
+                                    {% elif wallet.wallet_type == 'crypto' %}
+                                        <i class="fab fa-bitcoin text-warning fs-4" title="Крипто"></i>
+                                    {% elif wallet.wallet_type == 'saving' %}
+                                        <i class="fas fa-piggy-bank text-success fs-4" title="Накопительный"></i>
+                                    {% else %}
+                                        <i class="fas fa-wallet text-secondary fs-4"></i>
+                                    {% endif %}
+                                    {% if wallet.is_default %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle ms-2">Основной</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Выпадающее меню действий -->
+                            <div class="dropdown">
+                                <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                    <!-- Кнопка Редактировать -->
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'update_wallet' wallet.pk %}">
+                                            <i class="fas fa-edit me-2 text-primary"></i>Изменить
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <!-- Кнопка Удалить (через форму) -->
+                                    <li>
+                                        <form action="{% url 'delete_wallet' wallet.pk %}" method="post"
+                                              onsubmit="return confirm('Вы уверены, что хотите удалить кошелек? Все данные будут скрыты.');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="fas fa-trash-alt me-2"></i>Удалить
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <h5 class="card-title fw-bold mb-1 text-truncate" title="{{ wallet.name }}">
+                                {{ wallet.name }}
+                            </h5>
+                            <div class="text-muted small">Текущий баланс</div>
+                            <div class="fs-3 fw-bold {% if wallet.balance < 0 %}text-danger{% endif %}">
+                                {{ wallet.balance|floatformat:2 }} <span class="fs-5 fw-normal text-muted">{{ wallet.get_currency_display|default:wallet.currency }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-0 pb-3">
+                        <a href="{% url 'home' %}?wallet={{ wallet.id }}" class="btn btn-outline-secondary btn-sm w-100">
+                            История операций
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="card border-dashed py-5 text-center">
+                    <div class="card-body">
+                        <i class="fas fa-piggy-bank fa-3x text-muted mb-3"></i>
+                        <p class="lead text-muted">У вас пока нет ни одного кошелька</p>
+                        <a href="{% url 'add_wallet' %}" class="btn btn-primary">Создать первый счет</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Пагинация -->
+    {% if is_paginated %}
+    <nav class="mt-5">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+    .transition-all {
+        transition: all 0.3s ease;
+    }
+    .border-dashed {
+        border: 2px dashed #dee2e6;
+        background-color: #f8f9fa;
+    }
+    /* Стили для основных цветов под Bootstrap 5 */
+    .bg-primary-subtle {
+        background-color: #e7f1ff;
+    }
+</style>
+{% endblock %}

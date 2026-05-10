@@ -1,0 +1,90 @@
+import math
+
+from django.contrib.contenttypes.fields import GenericRelation
+from django.db import models
+from django.db.models import JSONField
+from django.utils.text import slugify
+from django.urls import reverse
+
+from finmate import settings
+from mdeditor.fields import MDTextField
+from pytils.translit import slugify as pytils_slugify
+
+
+class PostQuerySet(models.QuerySet):
+    def verified(self):
+        return self.filter(is_verified=True, status=Post.StatusType.PUBLISHED)
+
+    def editorial(self):
+        return self.filter(post_type=Post.PostType.EDITORIAL)
+
+    def community(self):
+        return self.filter(post_type=Post.PostType.COMMUNITY)
+
+
+class Post(models.Model):
+    class PostType(models.TextChoices):
+        EDITORIAL = 'editorial', 'Редакция'
+        COMMUNITY = 'community', 'Сообщество'
+
+    class StatusType(models.TextChoices):
+        DRAFT = 'draft', 'Черновик'
+        CHECKING = 'checking', "На проверке"
+        PUBLISHED = 'published', 'Опубликовано'
+
+    title = models.CharField(max_length=255, verbose_name="Заголовок")
+    slug = models.SlugField(unique=True, blank=True, db_index=True, verbose_name="Слаг статьи")
+    content = MDTextField(verbose_name="Содержимое")
+    post_type = models.CharField(max_length=50, choices=PostType.choices, default=PostType.COMMUNITY,
+                                 db_index=True, verbose_name="Тип поста")
+    is_verified = models.BooleanField(default=False, db_index=True, verbose_name="Одобрена")
+    status = models.CharField(max_length=50, choices = StatusType.choices, default=StatusType.DRAFT,
+                              verbose_name="Статус")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="Создана")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Изменена")
+    read_time = models.PositiveIntegerField(default=0)
+    likes_count = models.PositiveIntegerField(default=0)
+    pending_revision = JSONField(default=dict, blank=True, verbose_name="Ожидающие правки")
+    has_unreviewed_changes = models.BooleanField(default=False, verbose_name="Есть непроверенные изменения")
+
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="posts",
+                               verbose_name="Автор")
+    linked_category = models.ForeignKey("personal_finance.Category", on_delete=models.SET_NULL, null=True,
+                                        blank=True, related_name="posts", verbose_name="Связанная категория")
+
+    objects = PostQuerySet.as_manager()
+    likes = GenericRelation('interactions.Like')
+    comments = GenericRelation('interactions.Comment')
+
+    class Meta:
+        verbose_name = "Статья"
+        verbose_name_plural = "Статьи"
+        ordering=['-created_at']
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug or self.status == self.StatusType.DRAFT:
+            slug = pytils_slugify(self.title)
+            curr_slug = slug
+            counter = 1
+            while Post.objects.filter(slug=curr_slug).exclude(pk=self.pk).exists():
+                curr_slug = f"{slug}-{counter}"
+                counter+=1
+            self.slug = curr_slug
+
+        self.read_time = self._calculate_read_time()
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse('blog:post_detail', kwargs={"slug": self.slug})
+
+    def _calculate_read_time(self):
+        if not self.content:
+            return 0
+
+        word_count = len(self.content.split())
+        minutes = word_count / 200
+
+        return math.ceil(minutes) if  minutes > 0 else 1

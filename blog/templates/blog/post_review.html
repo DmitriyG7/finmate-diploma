@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    /* Стили для таблицы сравнения текста */
+    .diff { width: 100%; border-collapse: collapse; font-family: monospace; }
+    .diff_add { background-color: #d4fcbc; } /* Зеленый - добавлено */
+    .diff_sub { background-color: #fcd4dc; } /* Красный - удалено */
+    .diff_chg { background-color: #fcf8bc; } /* Желтый - изменено */
+    .diff td { padding: 5px; border: 1px solid #eee; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'blog:post_list' %}">Блог</a></li>
+            <li class="breadcrumb-item active">Модерация правок</li>
+        </ol>
+    </nav>
+
+    <h2>Проверка изменений для: {{ post.title }}</h2>
+    <p class="text-muted">Автор: {{ post.author.username }}</p>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Сравнение контента</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                {% if content_diff %}
+                    {{ content_diff }}
+                {% else %}
+                    <div class="p-3 text-center text-muted">Изменения только в заголовке или категории.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if post.pending_revision.title or post.pending_revision.linked_category %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Прочие изменения</div>
+        <ul class="list-group list-group-flush">
+            {% if post.pending_revision.title %}
+                <li class="list-group-item">
+                    <strong>Новый заголовок:</strong> {{ post.pending_revision.title }}
+                </li>
+            {% endif %}
+            </ul>
+    </div>
+    {% endif %}
+
+    <div class="d-flex gap-3">
+        <form action="{% url 'blog:approve_post' post.pk %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success px-4">
+                <i class="bi bi-check-circle"></i> Одобрить и опубликовать
+            </button>
+        </form>
+
+        <a href="{% url 'blog:post_update' post.slug %}" class="btn btn-outline-secondary">
+            Отредактировать вручную
+        </a>
+    </div>
+</div>
+
+<style>
+    /* Стили для того, чтобы таблица сравнения не выглядела как привет из 90-х */
+    .diff { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 0.9rem; }
+    .diff_add { background-color: #d4fcbc !important; }
+    .diff_sub { background-color: #fcd4dc !important; }
+    .diff_chg { background-color: #fcf8bc !important; }
+    .diff_header { background-color: #eee; color: #666; padding: 0 5px; text-align: right; width: 40px; }
+    .diff td { padding: 2px 10px; border: 1px solid #ddd; }
+</style>
+{% endblock %}

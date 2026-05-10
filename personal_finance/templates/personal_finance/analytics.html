@@ -5,67 +5,66 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <h2 class="mb-4 text-center text-primary">📊 Аналитика расходов и доходов</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4 px-3">
+        <h2 class="text-primary mb-0"><i class="bi bi-pie-chart-fill"></i> Аналитика финансов</h2>
+        <div class="btn-group shadow-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" id="bar-btn">
+                <i class="bi bi-bar-chart-steps"></i> Столбцы
+            </button>
+            <button type="button" class="btn btn-outline-primary" id="pie-btn">
+                <i class="bi bi-donut-chart"></i> Круг
+            </button>
+        </div>
+    </div>
 
-    <div class="row">
-
+    <div class="row g-4">
         <!-- Левая колонка: Фильтры -->
         <div class="col-md-4 col-lg-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">Фильтры</h5>
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light fw-bold py-3">
+                    <i class="bi bi-funnel"></i> Параметры отчета
                 </div>
-                <div class="card-body d-flex flex-column">
-
-                    <form method="get" class="flex-grow-1">
-
-                        <!-- Период -->
+                <div class="card-body">
+                    <form method="get" id="filter-form">
                         <div class="mb-3">
-                            <label for="id_period" class="form-label">Период</label>
+                            <label class="form-label small fw-bold text-muted">Период</label>
                             {{ form.period }}
                         </div>
 
-                        <!-- Тип транзакции -->
                         <div class="mb-3">
-                            <label for="id_operation_type" class="form-label">Тип</label>
+                            <label class="form-label small fw-bold text-muted">Тип операций</label>
                             {{ form.operation_type }}
                         </div>
 
-                        <!-- Даты -->
                         <div class="row g-2 mb-3">
-                            <div class="col-md-6">
-                                <label for="id_date_from" class="form-label">С</label>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted">С даты</label>
                                 {{ form.date_from }}
                             </div>
-                            <div class="col-md-6">
-                                <label for="id_date_to" class="form-label">По</label>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-muted">По дату</label>
                                 {{ form.date_to }}
                             </div>
                         </div>
 
-                        <!-- Категории — теперь как список с чекбоксами -->
                         <div class="mb-3">
-                            <label class="form-label"><strong>Категории</strong></label>
-                            <div class="list-group list-group-flush max-h-300 overflow-auto">
+                            <label class="form-label small fw-bold text-muted">Категории</label>
+                            <div class="list-group list-group-flush border rounded max-h-300 overflow-auto custom-scrollbar">
                                 {% for category in form.category.field.queryset %}
-                                    <label class="list-group-item d-flex align-items-center gap-2">
-                                        <input type="checkbox"
+                                    <label class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-2">
+                                        <input type="checkbox" class="form-check-input"
                                                name="{{ form.category.name }}"
                                                value="{{ category.pk }}"
                                                {% if category.pk|stringformat:'s' in form.category.value %}checked{% endif %}>
-                                        <span>{{ category.name }}</span>
+                                        <span class="small">{{ category.name }}</span>
                                     </label>
                                 {% endfor %}
                             </div>
-                            {% if form.category.errors %}
-                                <div class="text-danger small mt-2">{{ form.category.errors|join:", " }}</div>
-                            {% endif %}
                         </div>
 
-                        <!-- Кнопки -->
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">Применить</button>
-                            <a href="{% url 'analytics' %}" class="btn btn-outline-secondary">Сбросить</a>
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary shadow-sm">Применить</button>
+                            <a href="{% url 'analytics' %}" class="btn btn-link btn-sm text-muted">Сбросить фильтры</a>
                         </div>
                     </form>
                 </div>
@@ -74,183 +73,120 @@
 
         <!-- Правая колонка: График -->
         <div class="col-md-8 col-lg-9">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0" id="chart-title">Гистограмма</h5>
-                    <span class="text-muted small" id="total-amount"></span>
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                    <h5 class="mb-0 text-secondary" id="chart-title">Визуализация</h5>
+                    <span class="badge bg-success fs-6 p-2 shadow-sm" id="total-amount">0 ₽</span>
                 </div>
-                <div class="card-body d-flex flex-column">
-                    <div class="d-flex justify-content-center mb-3">
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-outline-secondary" id="bar-btn" disabled>Столбцы</button>
-                            <button type="button" class="btn btn-outline-secondary" id="pie-btn">Круговая</button>
-                        </div>
+                <div class="card-body d-flex flex-column justify-content-center position-relative">
+                    <div id="no-data" class="text-center py-5 d-none">
+                        <i class="bi bi-graph-down-arrow display-1 text-light"></i>
+                        <h4 class="text-muted mt-3">Данных пока нет</h4>
+                        <p class="text-muted small">Попробуйте изменить фильтры</p>
                     </div>
-                    <div class="chart-wrapper" style="flex: 1; min-height: 400px; display: flex; justify-content: center;">
+
+                    <div class="chart-container" id="chart-wrapper" style="position: relative; height:450px; width:100%">
                         <canvas id="analyticsChart"></canvas>
                     </div>
                 </div>
             </div>
         </div>
-
-    </div>
-
-    <!-- Нет данных -->
-    <div id="no-data" class="text-center mt-4 text-muted d-none">
-        <p>Нет данных для отображения за выбранный период.</p>
     </div>
 </div>
 
-<!-- Chart.js -->
+<style>
+    .max-h-300 { max-height: 300px; }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #dee2e6; border-radius: 10px; }
+    .chart-container { transition: opacity 0.3s ease; }
+</style>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const ctx = document.getElementById('analyticsChart');
+        // Регистрация плагина меток
+        Chart.register(ChartDataLabels);
+
+        // Стилизация форм
+        document.querySelectorAll('#filter-form select, #filter-form input[type="text"], #filter-form input[type="date"]').forEach(el => {
+            el.classList.add('form-control', 'form-control-sm');
+        });
+
+        const ctx = document.getElementById('analyticsChart').getContext('2d');
         const rawData = JSON.parse('{{ chart_data|safe }}');
         const barBtn = document.getElementById('bar-btn');
         const pieBtn = document.getElementById('pie-btn');
         const chartTitle = document.getElementById('chart-title');
         const totalAmount = document.getElementById('total-amount');
+        const noDataBlock = document.getElementById('no-data');
+        const chartWrapper = document.getElementById('chart-wrapper');
         let myChart;
 
-        // Восстанавливаем тип диаграммы
-        let currentChartType = localStorage.getItem('analyticsChartType') || 'bar';
-        barBtn.disabled = currentChartType === 'bar';
-        pieBtn.disabled = currentChartType === 'pie';
+        if (!rawData || rawData.length === 0) {
+            chartWrapper.classList.add('d-none');
+            noDataBlock.classList.remove('d-none');
+            return;
+        }
 
-        // Общая сумма
         const total = rawData.reduce((sum, item) => sum + item.total, 0);
         totalAmount.textContent = `Итого: ${total.toLocaleString()} ₽`;
 
-        function createBarChart() {
+        const colors = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#6f42c1', '#fd7e14'];
+
+        function createChart(type) {
             if (myChart) myChart.destroy();
+
+            const isPie = type === 'pie';
+            chartTitle.textContent = isPie ? 'Распределение по категориям' : 'Сравнение расходов';
+
+            // Визуальное переключение кнопок
+            barBtn.classList.toggle('active', type === 'bar');
+            pieBtn.classList.toggle('active', type === 'pie');
+            localStorage.setItem('analyticsChartType', type);
+
             myChart = new Chart(ctx, {
-                type: 'bar',
+                type: isPie ? 'doughnut' : 'bar',
                 data: {
                     labels: rawData.map(item => item.category),
                     datasets: [{
                         label: 'Сумма',
                         data: rawData.map(item => item.total),
-                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, title: { display: true, text: 'Сумма' } },
-                        x: { title: { display: true, text: 'Категории' }, ticks: { autoSkip: false } }
-                    }
-                }
-            });
-        }
-
-        function createPieChart() {
-            if (myChart) myChart.destroy();
-            myChart = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: rawData.map(item => item.category),
-                    datasets: [{
-                        data: rawData.map(item => item.total),
-                        backgroundColor: [
-                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-                            '#FF9F40', '#C9CBCF', '#7CFC00', '#8A2BE2', '#FF1493'
-                        ]
+                        backgroundColor: isPie ? colors : 'rgba(78, 115, 223, 0.8)',
+                        borderColor: isPie ? '#fff' : '#4e73df',
+                        borderWidth: isPie ? 2 : 1,
+                        borderRadius: isPie ? 0 : 6,
+                        hoverOffset: isPie ? 15 : 0
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'right' },
+                        legend: { display: isPie, position: 'bottom' },
+                        datalabels: {
+                            display: isPie,
+                            color: '#fff',
+                            font: { weight: 'bold' },
+                            formatter: (value) => Math.round(value / total * 100) + '%'
+                        },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
-                                    const value = context.parsed;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percent = ((value / total) * 100).toFixed(1);
-                                    return ` ${value} ₽ (${percent}%)`;
-                                }
-                            }
-                        },
-                        // Добавляем подписи на сегменты
-                        datalabels: {
-                            color: '#fff',
-                            font: { weight: 'bold', size: 12 },
-                            formatter: (value, context) => {
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                // Показываем сумму и процент
-                                return `${value} ₽ (${percentage}%)`;
-                            },
-                            // Условие: показывать только если кусок > 5%
-                            display: function(context) {
-                                const value = context.dataset.data[context.dataIndex];
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                return (value / total) > 0.05; // >5%
+                                label: (context) => ` ${context.raw.toLocaleString()} ₽`
                             }
                         }
-                    }
-                },
-                plugins: [ChartDataLabels], // ← ВАЖНО: подключаем плагин
-                cutout: '60%'
+                    },
+                    scales: isPie ? {} : { y: { beginAtZero: true } }
+                }
             });
         }
 
-        // Показываем график
-        if (rawData.length > 0) {
-            if (currentChartType === 'pie') {
-                createPieChart();
-                chartTitle.textContent = 'Круговая диаграмма';
-            } else {
-                createBarChart();
-                chartTitle.textContent = 'Гистограмма';
-            }
-        } else {
-            document.getElementById('analyticsChart').style.display = 'none';
-            document.getElementById('no-data').classList.remove('d-none');
-        }
+        let savedType = localStorage.getItem('analyticsChartType') || 'pie';
+        createChart(savedType);
 
-        // Переключение
-        barBtn.addEventListener('click', () => {
-            createBarChart();
-            chartTitle.textContent = 'Гистограмма';
-            barBtn.disabled = true;
-            pieBtn.disabled = false;
-            localStorage.setItem('analyticsChartType', 'bar');
-        });
-
-        pieBtn.addEventListener('click', () => {
-            createPieChart();
-            chartTitle.textContent = 'Круговая диаграмма';
-            pieBtn.disabled = true;
-            barBtn.disabled = false;
-            localStorage.setItem('analyticsChartType', 'pie');
-        });
+        barBtn.addEventListener('click', () => createChart('bar'));
+        pieBtn.addEventListener('click', () => createChart('pie'));
     });
 </script>
-
-{% endblock %}
-
-{% block extra_css %}
-{{ block.super }}
-<link rel="stylesheet" href="{% static 'personal_finance/css/styles.css' %}">
-<style>
-    .max-h-300 {
-        max-height: 300px;
-    }
-    .card-body {
-        overflow: auto;
-    }
-</style>
-{% endblock %}
-
-{% block extra_js %}
-{{ block.super }}
-<script src="{% static 'personal_finance/js/transactions_category_btn.js' %}"></script>
 {% endblock %}

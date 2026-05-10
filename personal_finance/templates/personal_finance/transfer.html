@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-center mb-4 fw-bold">Перевод между счетами</h3>
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        <!-- ОТКУДА СПИСАТЬ -->
+                        <div class="mb-3">
+                            <label class="form-label text-muted fw-semibold">Откуда списать</label>
+                            <select name="from_wallet" class="form-select form-select-lg">
+                                {% if form.from_wallet.field.queryset %}
+                                    {% for wallet in form.from_wallet.field.queryset %}
+                                        <option value="{{ wallet.id }}"
+                                            {% if form.from_wallet.value|stringformat:"s" == wallet.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ wallet.name }} ({{ wallet.balance|floatformat:2 }} {{ wallet.currency }})
+                                        </option>
+                                    {% endfor %}
+                                    <option value="create_new" class="text-primary fw-bold">➕ Создать новый счёт</option>
+                                {% endif %}
+                            </select>
+                            {% if form.from_wallet.errors %}
+                                <div class="text-danger small mt-1">{{ form.from_wallet.errors|first }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- ИКОНКА РАЗДЕЛИТЕЛЯ -->
+                        <div class="text-center my-2">
+                            <i class="fas fa-exchange-alt text-primary fs-3"></i>
+                        </div>
+
+                        <!-- КУДА ЗАЧИСЛИТЬ -->
+                        <div class="mb-3">
+                            <label class="form-label text-muted fw-semibold">Куда зачислить</label>
+                            <select name="to_wallet" class="form-select form-select-lg">
+                                {% if form.to_wallet.field.queryset %}
+                                    <option value="" disabled {% if not form.to_wallet.value %}selected{% endif %}>Выберите счёт зачисления</option>
+                                    {% for wallet in form.to_wallet.field.queryset %}
+                                        <option value="{{ wallet.id }}"
+                                            {% if form.to_wallet.value|stringformat:"s" == wallet.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ wallet.name }} ({{ wallet.balance|floatformat:2 }} {{ wallet.currency }})
+                                        </option>
+                                    {% endfor %}
+                                    <option value="create_new" class="text-primary fw-bold">➕ Создать новый счёт</option>
+                                {% endif %}
+                            </select>
+                            {% if form.to_wallet.errors %}
+                                <div class="text-danger small mt-1">{{ form.to_wallet.errors|first }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- ДАТА -->
+                        <div class="mb-3">
+                            <label class="form-label text-muted fw-semibold">Дата перевода</label>
+                            {{ form.date|add_class:"form-control" }}
+                            {% if form.date.errors %}
+                                <div class="text-danger small mt-1">{{ form.date.errors|first }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- СУММА -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Сумма перевода</label>
+                            <div class="input-group input-group-lg">
+                                {{ form.amount|add_class:"form-control" }}
+                                <span class="input-group-text"><i class="fas fa-money-bill-wave"></i></span>
+                            </div>
+                            {% if form.amount.errors %}
+                                <div class="text-danger small mt-1">{{ form.amount.errors|first }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- ОБЩИЕ ОШИБКИ -->
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger shadow-sm">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg shadow-sm">Подтвердить перевод</button>
+                            <a href="{% url 'wallet_list' %}" class="btn btn-outline-secondary">Отмена</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -43,6 +43,10 @@ INSTALLED_APPS = [
     'users',
     'personal_finance',
     'groups',
+    'mdeditor',
+    'blog',
+    'interactions',
+    'notifications',
     'widget_tweaks',
 ]
 
@@ -71,6 +75,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'users.context_processors.default_avatar',
+                'notifications.context_processors.unread_notifications'
             ],
         },
     },
@@ -162,3 +167,15 @@ EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", True)
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SERVER_EMAIL = EMAIL_HOST_USER
 EMAIL_ADMIN = EMAIL_HOST_USER
+
+MAX_WALLETS_PER_USER = int(os.getenv("MAX_WALLETS_PER_USER", "10"))
+
+from django.contrib.messages import constants as message_constants
+
+MESSAGE_TAGS = {
+    message_constants.DEBUG: 'secondary',
+    message_constants.INFO: 'info',
+    message_constants.SUCCESS: 'success',
+    message_constants.WARNING: 'warning',
+    message_constants.ERROR: 'danger',  # Важно: Django 'error' -> Bootstrap 'danger'
+}
