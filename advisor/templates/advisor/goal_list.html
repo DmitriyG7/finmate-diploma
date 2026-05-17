@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Финансовый советчик</h1>
+            <p class="text-muted mb-0">Планируй цели и получай подсказки по накоплениям.</p>
+        </div>
+        <a href="{% url 'advisor:goal_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Новая цель
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light fw-semibold">Автораспределение по целям</div>
+                <div class="card-body">
+                    <div class="small text-muted mb-2">
+                        Свободный поток: <strong>{{ allocation_plan.free_cashflow_per_month }} ₽/мес</strong> |
+                        Нужно всего: <strong>{{ allocation_plan.total_required_per_month }} ₽/мес</strong>
+                    </div>
+                    {% if allocation_plan.items %}
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Цель</th>
+                                        <th>Приоритет</th>
+                                        <th>Нужно/мес</th>
+                                        <th>План/мес</th>
+                                        <th>Разница</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in allocation_plan.items %}
+                                        <tr>
+                                            <td><a href="{% url 'advisor:goal_detail' item.goal.pk %}" class="text-decoration-none">{{ item.goal.title }}</a></td>
+                                            <td>{{ item.goal.get_priority_display }}</td>
+                                            <td>{{ item.required_per_month }} ₽</td>
+                                            <td>{{ item.allocation_per_month }} ₽</td>
+                                            <td>
+                                                {% if item.delta_to_required >= 0 %}
+                                                    <span class="text-success">+{{ item.delta_to_required }} ₽</span>
+                                                {% else %}
+                                                    <span class="text-danger">{{ item.delta_to_required }} ₽</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Нет активных целей с требуемым ежемесячным пополнением.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-semibold">Мои цели</div>
+                <div class="list-group list-group-flush">
+                    {% for goal in goals %}
+                        <a href="{% url 'advisor:goal_detail' goal.pk %}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ goal.title }}</h6>
+                                    <small class="text-muted">Срок: {{ goal.target_date|date:"d.m.Y" }}</small>
+                                </div>
+                                <span class="badge bg-secondary">{{ goal.progress_percent }}%</span>
+                            </div>
+                            <div class="progress mt-2" style="height: 7px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ goal.progress_percent }}%;"></div>
+                            </div>
+                        </a>
+                    {% empty %}
+                        <div class="list-group-item text-muted">Пока нет целей. Создай первую цель накопления.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-semibold">Быстрые подсказки</div>
+                <div class="card-body">
+                    {% for advice in advice_cards %}
+                        <div class="border rounded p-3 mb-3">
+                            <div class="fw-semibold mb-2">{{ advice.goal.title }}</div>
+                            <div class="small text-muted mb-2">Нужно в месяц: {{ advice.required_per_month }} ₽</div>
+                            <div class="small text-muted mb-2">Свободный поток: {{ advice.free_cashflow_per_month }} ₽</div>
+                            <ul class="small mb-0">
+                                {% for line in advice.recommendations|slice:":2" %}
+                                    <li>{{ line }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted mb-0">Подсказки появятся после создания целей.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

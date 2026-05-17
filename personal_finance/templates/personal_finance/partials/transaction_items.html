@@ -1,0 +1,184 @@
+{% for day in transactions_grouped %}
+    <div class="day-group-header d-flex justify-content-between align-items-center px-1 pt-3 pb-2 my-3 animate-fade-in-up" style="animation-delay: 0.1s;">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-white text-dark border shadow-sm rounded-pill px-3 py-2 fw-bold text-uppercase tracking-wider fs-12">
+                <i class="bi bi-calendar-event text-primary me-1.5"></i>
+                {{ day.date|date:"d E Y" }}
+            </span>
+        </div>
+
+        <div class="d-flex gap-2 align-items-center">
+            {% if day.income > 0 %}
+                <span class="badge bg-success-subtle-fintech text-success rounded-pill px-3 py-2 fw-semibold fs-13">
+                    <i class="bi bi-plus-lg me-1"></i>{{ day.income|floatformat:0 }} ₽
+                </span>
+            {% endif %}
+
+            {% if day.expense > 0 %}
+                <span class="badge bg-danger-subtle-fintech text-danger rounded-pill px-3 py-2 fw-semibold fs-13">
+                    <i class="bi bi-dash-lg me-1"></i>{{ day.expense|floatformat:0 }} ₽
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="day-transactions-wrapper shadow-fintech rounded-4 overflow-hidden mb-4 border border-light-soft bg-white animate-fade-in-up" style="animation-delay: 0.2s;">
+        {% for t in day.transactions %}
+
+            <div class="transaction-item d-flex justify-content-between align-items-center p-3 border-bottom transition-all position-relative"
+                 style="border-color: #f1f5f9 !important;"
+                 {% if forloop.parentloop.last and forloop.last and transactions.has_next %}
+                    hx-get="?{{ request.GET.urlencode }}&page={{ transactions.next_page_number }}"
+                    hx-trigger="revealed"
+                    hx-swap="afterend"
+                 {% endif %}>
+
+                <div class="d-flex align-items-center">
+                    <div class="category-icon-box me-3 d-none d-sm-flex align-items-center justify-content-center rounded-3
+                        {% if t.operation_type == 'income' %}bg-success-light text-success
+                        {% elif t.operation_type == 'expense' %}bg-danger-light text-danger
+                        {% else %}bg-purple-light text-purple{% endif %}">
+
+                        <i class="bi fs-5
+                            {% if t.operation_type == 'transfer' %}bi-arrow-left-right
+                            {% elif t.operation_type == 'income' %}bi-graph-up-arrow
+                            {% else %}bi-cart-dash{% endif %}">
+                        </i>
+                    </div>
+
+                    <div>
+                        <h6 class="mb-1 fw-bold text-dark fs-15">{{ t.category.name }}</h6>
+                        <div class="d-flex flex-wrap align-items-center gap-1.5 text-muted fs-13">
+                            <span class="text-secondary fw-medium me-1">{{ t.description|default:"Без описания" }}</span>
+
+                            <span class="badge bg-light-soft text-secondary border border-light fw-medium px-2 py-1 rounded">
+                                <i class="bi bi-credit-card-2-front me-1 fs-11"></i>{{ t.wallet.name }}
+                            </span>
+
+                            {% if t.performed_by %}
+                                <span class="badge bg-light-soft text-secondary border border-light fw-medium px-2 py-1 rounded">
+                                    <i class="bi bi-person me-1 fs-11"></i>{{ t.performed_by.username }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-end d-flex align-items-center gap-3 gap-md-4">
+                    <div class="fw-bolder fs-16 tracking-tight
+                        {% if t.operation_type == 'income' %}text-success
+                        {% elif t.operation_type == 'expense' %}text-danger
+                        {% else %}text-dark{% endif %}">
+
+                        {% if t.operation_type == 'income' %}+
+                        {% elif t.operation_type == 'expense' %}−
+                        {% endif %}{{ t.total|floatformat:0 }} <span class="fs-14 fw-semibold">₽</span>
+                    </div>
+
+                    <div class="actions-group d-flex gap-1">
+                        {% if t.operation_type != 'transfer' and t.category.name != "Накопления" %}
+                            <a href="{% url 'edit_transaction' t.pk %}" class="btn btn-icon-action text-secondary" title="Редактировать">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <button type="button"
+                                    class="btn btn-icon-action text-danger-hover"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#deleteModal{{ t.pk }}"
+                                    title="Удалить">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        {% else %}
+                            <span class="text-muted opacity-50 p-2" title="Системная операция">
+                                <i class="bi bi-lock-fill fs-14"></i>
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if t.operation_type != 'transfer' and t.category.name != "Накопления" %}
+                <div class="modal fade" id="deleteModal{{ t.pk }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-sm-custom">
+                        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                            <div class="modal-body p-4 text-center">
+                                <div class="bg-danger-light text-danger rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 56px; height: 56px;">
+                                    <i class="bi bi-exclamation-triangle fs-4"></i>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-2">Удалить операцию?</h5>
+                                <p class="text-muted fs-14 mb-4">
+                                    Вы уверены, что хотите удалить <strong>{{ t.category.name }}</strong> на сумму <strong>{{ t.total }} ₽</strong>? Данное действие нельзя отменить.
+                                </p>
+                                <div class="d-flex gap-2 w-100">
+                                    <button type="button" class="btn btn-light py-2 rounded-3 fw-semibold flex-grow-1 border" data-bs-dismiss="modal">Отмена</button>
+                                    <form method="post" action="{% url 'delete_transaction' t.pk %}" class="flex-grow-1 m-0">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger py-2 rounded-3 fw-semibold w-100">Удалить</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+        {% endfor %}
+    </div>
+
+{% empty %}
+    {% endfor %}
+
+<style>
+    /* Мягкие бэкграунды для иконок */
+    .bg-success-light { background-color: #ecfdf5; }
+    .bg-danger-light { background-color: #fff1f2; }
+    .bg-purple-light { background-color: #f3e8ff; }
+    .text-purple { color: #a855f7; }
+
+    /* Контейнер иконки */
+    .category-icon-box {
+        width: 42px;
+        height: 42px;
+        transition: transform 0.2s ease;
+    }
+    .transaction-item:hover .category-icon-box {
+        transform: scale(1.05);
+    }
+
+    /* Интерактивные строки транзакций */
+    .transaction-item {
+        background-color: #ffffff;
+    }
+    .transaction-item:hover {
+        background-color: #f8fafc !important;
+    }
+    .transaction-item:last-child {
+        border-bottom: none !important;
+    }
+
+    /* Экшены */
+    .btn-icon-action {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: transparent;
+        font-size: 15px;
+        transition: all 0.2s ease;
+        padding: 0;
+    }
+    .btn-icon-action:hover {
+        background-color: #e2e8f0;
+        color: #0f172a !important;
+    }
+    .btn-icon-action.text-danger-hover:hover {
+        background-color: #fee2e2;
+        color: #ef4444 !important;
+    }
+
+    /* Вспомогательные отступы */
+    .gap-1\.5 { gap: 6px; }
+    .modal-sm-custom { max-width: 380px; }
+</style>
