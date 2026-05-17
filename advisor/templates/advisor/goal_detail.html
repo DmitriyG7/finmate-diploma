@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">{{ goal.title }}</h1>
+            <div class="text-muted">Срок: {{ goal.target_date|date:"d.m.Y" }} | Статус: {{ goal.get_status_display }}</div>
+        </div>
+        <a href="{% url 'advisor:goal_update' goal.pk %}" class="btn btn-outline-primary">Редактировать</a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light fw-semibold">Прогресс цели</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="small text-muted">Цель</div>
+                                <div class="fw-semibold">{{ goal.target_amount }} ₽</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="small text-muted">Накоплено</div>
+                                <div class="fw-semibold">{{ advice.saved_amount }} ₽</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="small text-muted">Осталось</div>
+                                <div class="fw-semibold">{{ advice.remaining_amount }} ₽</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>Прогресс</span>
+                            <span>{{ goal.progress_percent }}%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar" role="progressbar" style="width: {{ goal.progress_percent }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-semibold">История пополнений</div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'advisor:add_contribution' goal.pk %}" class="row g-3 mb-4 align-items-end">
+                        {% csrf_token %}
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted mb-1">Сумма</label>
+                            {{ contribution_form.amount }}
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted mb-1">Списать со счета</label>
+                            {{ contribution_form.wallet }}
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Дата</label>
+                            {{ contribution_form.date }}
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Комментарий</label>
+                            {{ contribution_form.comment }}
+                        </div>
+
+                        <div class="col-md-2 d-grid">
+                            <button type="submit" class="btn btn-success">Добавить</button>
+                        </div>
+                    </form>
+
+                    {% if goal.contributions.all %}
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Сумма</th>
+                                        <th>Счет списания</th> <th>Комментарий</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                {% for item in goal.contributions.all %}
+                                    <tr>
+                                        <td>{{ item.date|date:"d.m.Y" }}</td>
+                                        <td>{{ item.amount }} ₽</td>
+                                        <td>{{ item.comment|default:"-" }}</td>
+                                        <td><span class="badge bg-secondary">{{ item.wallet.name }}</span></td> <td>{{ item.comment|default:"-" }}</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Пополнений пока нет.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light fw-semibold">Расчет советчика</div>
+                <div class="card-body">
+                    <div class="small text-muted">Нужно откладывать</div>
+                    <div class="fs-5 fw-semibold mb-3">{{ advice.required_per_month }} ₽ / мес</div>
+
+                    <div class="small text-muted">Средний доход (3 мес)</div>
+                    <div class="fw-semibold mb-2">{{ advice.avg_income_per_month }} ₽ / мес</div>
+
+                    <div class="small text-muted">Средний расход (3 мес)</div>
+                    <div class="fw-semibold mb-2">{{ advice.avg_expense_per_month }} ₽ / мес</div>
+
+                    <div class="small text-muted">Свободный поток</div>
+                    <div class="fw-semibold mb-2">{{ advice.free_cashflow_per_month }} ₽ / мес</div>
+
+                    <div class="small text-muted">Прогноз достижения (текущий темп)</div>
+                    <div class="fw-semibold mb-0">
+                        {% if advice.projected_target_date %}
+                            {{ advice.projected_target_date|date:"d.m.Y" }}
+                        {% else %}
+                            Недостижимо при текущем потоке
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light fw-semibold">Сценарий what-if</div>
+                <div class="card-body">
+                    <form method="get" class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Сократить расходы, %</label>
+                            <input
+                                type="number"
+                                min="0"
+                                max="90"
+                                class="form-control"
+                                name="expense_cut_percent"
+                                value="{{ scenario.expense_cut_percent }}"
+                            >
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Увеличить доход, %</label>
+                            <input
+                                type="number"
+                                min="0"
+                                max="300"
+                                class="form-control"
+                                name="income_raise_percent"
+                                value="{{ scenario.income_raise_percent }}"
+                            >
+                        </div>
+                        <div class="col-12 d-grid">
+                            <button type="submit" class="btn btn-outline-primary btn-sm">Пересчитать сценарий</button>
+                        </div>
+                    </form>
+
+                    <div class="small text-muted">Свободный поток в сценарии</div>
+                    <div class="fw-semibold mb-2">{{ scenario.simulated_free_cashflow_per_month }} ₽ / мес</div>
+                    <div class="small text-muted">Разрыв по плану</div>
+                    <div class="fw-semibold mb-2">{{ scenario.simulated_gap_per_month }} ₽ / мес</div>
+                    <div class="small text-muted">Прогноз достижения в сценарии</div>
+                    <div class="fw-semibold">
+                        {% if scenario.simulated_projected_target_date %}
+                            {{ scenario.simulated_projected_target_date|date:"d.m.Y" }}
+                        {% else %}
+                            Недостижимо даже в текущем сценарии
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-semibold">Рекомендации</div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        {% for rec in advice.recommendations %}
+                            <li class="mb-2">{{ rec }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

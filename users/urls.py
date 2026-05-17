@@ -29,4 +29,6 @@ urlpatterns = [
                 name='password_reset_complete'),
 
     path('profile/', views.ProfileUser.as_view(), name='profile'),
+    path('profile/avatar-delete/', views.ProfileAvatarDelete.as_view(), name='avatar_delete'),
+
 ]

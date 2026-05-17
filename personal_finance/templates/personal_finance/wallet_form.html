@@ -68,39 +68,3 @@
     </div>
 </div>
 {% endblock %}
-
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const balanceInput = document.querySelector('input[name="balance"]');
-
-    if (!balanceInput) return;
-
-    balanceInput.addEventListener('input', function (e) {
-        let value = e.target.value;
-
-        // заменяем запятую на точку
-        value = value.replace(',', '.');
-
-        // оставляем только цифры и точки
-        value = value.replace(/[^\d.]/g, '');
-
-        // если больше одной точки — оставляем только первую
-        const firstDotIndex = value.indexOf('.');
-        if (firstDotIndex !== -1) {
-            const beforeDot = value.slice(0, firstDotIndex + 1);
-            const afterDot = value.slice(firstDotIndex + 1).replace(/\./g, '');
-            value = beforeDot + afterDot;
-        }
-
-        // ограничиваем до 2 знаков после точки
-        if (value.includes('.')) {
-            const [intPart, decimalPart] = value.split('.');
-            value = intPart + '.' + decimalPart.slice(0, 2);
-        }
-
-        e.target.value = value;
-    });
-});
-</script>
-{% endblock %}

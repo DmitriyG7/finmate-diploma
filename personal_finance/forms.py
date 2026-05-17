@@ -89,7 +89,7 @@ class TransactionUserForm(FinanceFormMixin, forms.Form):
         self.apply_finance_styles()
 
         if user and user.is_authenticated:
-            self.fields['wallet'].queryset = Wallet.objects.filter(user=user, is_active=True)
+            self.fields['wallet'].queryset = Wallet.accessible_for_user(user=user)
             self.fields['category'].queryset = Category.objects.for_user(user=user)
 
     def clean(self):
@@ -134,7 +134,7 @@ class AddTransactionForm(FinanceFormMixin, forms.ModelForm):
 
         if user and user.is_authenticated:
             active_cats = Category.objects.for_user(user=user)
-            qs = Wallet.objects.filter(user=user, is_active=True)
+            qs = Wallet.accessible_for_user(user=user)
             self.fields['wallet'].queryset = qs
             self.fields['category'].queryset = Category.objects.for_user(user=user)
             self.fields['wallet'].empty_label = None
@@ -178,6 +178,14 @@ class AddTransactionForm(FinanceFormMixin, forms.ModelForm):
         category = cd.get("category")
         if category and operation_type and category.category_type != operation_type:
             self.add_error('category', "Тип категории не совпадает с типом операции.")
+
+        if self.instance and self.instance.pk:
+            if self.instance.category and self.instance.category.name == "Накопления":
+                raise ValidationError(
+                    "Эта транзакция создана автоматически финансовым советником. "
+                    "Её нельзя редактировать напрямую. Изменения вносятся через управление целями."
+                )
+
         return cd
 
 
@@ -187,10 +195,11 @@ class UpdateTransactionForm(AddTransactionForm):
 
 
 class GraphicForm(TransactionUserForm):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['operation_type'].choices = OperationType.choices
         self.fields['operation_type'].initial = 'expense'
+        self.fields['category'].queryset = Category.objects.for_user(user=user)
         self.apply_finance_styles()
 
 
@@ -245,7 +254,7 @@ class TransferForm(FinanceFormMixin, forms.ModelForm):
         self.apply_finance_styles()
 
         if user and user.is_authenticated:
-            qs = Wallet.objects.filter(user=user, is_active=True)
+            qs = Wallet.accessible_for_user(user=user)
             self.fields['from_wallet'].queryset = qs
             self.fields['to_wallet'].queryset = qs
 
@@ -310,3 +319,25 @@ class CategoryForm(FinanceFormMixin, forms.ModelForm):
                 self.add_error('name', "Категория с таким именем и типом уже существует")
 
         return cd
+
+
+class WalletShareInviteForm(forms.Form):
+    username = forms.CharField(max_length=150, label="Логин пользователя")
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user")
+        self.wallet = kwargs.pop("wallet")
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs.update({"class": "form-control", "placeholder": "Введите логин"})
+
+    def clean_username(self):
+        from django.contrib.auth import get_user_model
+
+        username = self.cleaned_data["username"].strip()
+        User = get_user_model()
+        target = User.objects.filter(username=username).first()
+        if not target:
+            raise ValidationError("Пользователь с таким логином не найден.")
+        if target.id == self.user.id:
+            raise ValidationError("Нельзя отправить приглашение самому себе.")
+        return username

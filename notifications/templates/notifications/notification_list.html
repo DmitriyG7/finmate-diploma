@@ -18,11 +18,15 @@
                  id="notification-{{ node.id }}">
                 
                 <div>
-                    <strong>{{ node.actor.username }}</strong> 
-                    {{ node.verb }} 
+                    {% if node.actor != user %}
+                        <strong>{{ node.actor.username }}</strong>
+                    {% endif %}
+
+                    {{ node.verb }}
+
                     {% if node.content_object %}
-                        <a href="{{ node.content_object.get_absolute_url }}" class="text-decoration-none">
-                            "{{ node.content_object.title|default:"объект" }}"
+                        <a href="{{ node.content_object.get_absolute_url }}" class="text-decoration-none fw-bold">
+                            «{{ node.content_object.title|default:"объект" }}»
                         </a>
                     {% endif %}
                     <br>
@@ -30,11 +34,24 @@
                 </div>
 
                 {% if not node.is_read %}
-                    <button class="btn btn-sm btn-primary mark-read-btn" 
+                    <button class="btn btn-sm btn-primary mark-read-btn"
                             data-id="{{ node.id }}"
                             data-url="{% url 'notifications:mark_as_read' node.id %}">
                         Ок
                     </button>
+                {% endif %}
+
+                {% if node.content_type.model == 'walletshareinvite' and node.content_object and node.content_object.status == 'pending' and node.recipient == user %}
+                    <div class="ms-2 d-flex gap-2">
+                        <form method="post" action="{% url 'wallet_invite_respond' node.content_object.pk 'accept' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success">Принять</button>
+                        </form>
+                        <form method="post" action="{% url 'wallet_invite_respond' node.content_object.pk 'decline' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Отклонить</button>
+                        </form>
+                    </div>
                 {% endif %}
             </div>
         {% empty %}
@@ -49,7 +66,6 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Пометка одного уведомления
     const readButtons = document.querySelectorAll('.mark-read-btn');
     readButtons.forEach(button => {
         button.addEventListener('click', function() {
@@ -68,9 +84,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.status === 'success') {
                     const item = document.getElementById(`notification-${noteId}`);
                     item.classList.remove('list-group-item-light', 'border-start', 'border-primary', 'border-4');
-                    this.remove(); // Удаляем кнопку "Ок"
-                    
-                    // Уменьшаем счетчик на колокольчике (если он есть)
+                    this.remove();
+
                     const badge = document.querySelector('.badge');
                     if (badge) {
                         let count = parseInt(badge.innerText);
@@ -85,7 +100,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // 2. Отметить все как прочитанные
     const markAllBtn = document.getElementById('mark-all-read');
     if (markAllBtn) {
         markAllBtn.addEventListener('click', function() {
@@ -93,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: { 'X-CSRFToken': '{{ csrf_token }}' }
             })
-            .then(() => location.reload()); // Просто перезагружаем страницу
+            .then(() => location.reload());
         });
     }
 });

@@ -1,8 +1,9 @@
 from django.contrib.auth import logout, get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, PasswordChangeView
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import CreateView, UpdateView
 
 from finmate import settings
@@ -35,3 +36,14 @@ class ProfileUser(LoginRequiredMixin, UpdateView):
     def get_object(self):
         return self.request.user
 
+
+class ProfileAvatarDelete(LoginRequiredMixin, View):
+    def post(self, request):
+        user = request.user
+
+        if user.avatar:
+            user.avatar.delete(save=False)
+            user.avatar = None
+            user.save()
+
+        return redirect('users:profile')

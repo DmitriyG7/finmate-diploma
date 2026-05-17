@@ -1,16 +1,19 @@
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
+from django.core.paginator import Paginator
 from django.utils import timezone
-from django.views.generic import DetailView, CreateView, UpdateView, DeleteView, ListView, FormView
+from django.views.generic import DetailView, CreateView, UpdateView, DeleteView, ListView, FormView, View
 from django.urls import reverse_lazy
 from django.views.generic.edit import ProcessFormView
 from django.db import models
 
 from .forms import TransactionUserForm, AddTransactionForm, UpdateTransactionForm, GraphicForm, CreateWalletForm, \
-    UpdateWalletForm, TransferForm, CategoryForm
-from .models import PersonalTransaction, Category, Wallet
-from django.db.models import Sum, Count
+    UpdateWalletForm, TransferForm, CategoryForm, WalletShareInviteForm
+from .models import PersonalTransaction, Category, Wallet, WalletShareInvite, WalletMember, OperationType
+from django.db.models import Sum, Count, Avg, Q
 import json
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
@@ -21,6 +24,7 @@ from datetime import timedelta, date
 
 from personal_finance.services.finance_service import FinanceService
 from blog.models import Post
+from notifications.services import NotificationsService
 
 
 @login_required
@@ -29,8 +33,9 @@ def transaction_list(request):
 
     form = TransactionUserForm(data=request.GET or None, user=request.user)
 
-    queryset = PersonalTransaction.objects.filter(user=request.user)\
-        .select_related("category", "wallet").order_by("-date", "-id")
+    accessible_wallets = Wallet.accessible_for_user(request.user)
+    queryset = PersonalTransaction.objects.filter(wallet__in=accessible_wallets)\
+        .select_related("category", "wallet", "performed_by").order_by("-date", "-id")
 
     selected_wallet = None
     if form.is_valid():
@@ -86,12 +91,63 @@ def transaction_list(request):
         elif selected_wallet:
             queryset = queryset.filter(wallet=selected_wallet)
 
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    daily_map = {}
+
+    for transaction in page_obj:
+        tx_date = transaction.date
+
+        if tx_date not in daily_map:
+            daily_map[tx_date] = {
+                "date": tx_date,
+                "income": Decimal("0.00"),
+                "expense": Decimal("0.00"),
+                "transactions": []
+            }
+
+        day_data = daily_map[tx_date]
+
+        day_data["transactions"].append(transaction)
+
+        if transaction.operation_type == OperationType.INCOME:
+            day_data["income"] += transaction.total
+
+        elif transaction.operation_type == OperationType.EXPENSE:
+            day_data["expense"] += transaction.total
+
+    grouped_transactions = list(daily_map.values())
+
+    totals = queryset.aggregate(
+        total_income=Sum('total', filter=Q(operation_type=OperationType.INCOME)),
+        total_expense=Sum('total', filter=Q(operation_type=OperationType.EXPENSE))
+    )
+
+    period_income = totals['total_income'] or Decimal('0.00')
+    period_expense = totals['total_expense'] or Decimal('0.00')
+
+    total_balance = Wallet.objects.filter(id__in=accessible_wallets).aggregate(
+        total=Sum('balance')
+    )['total'] or Decimal('0.00')
+
     context = {
         "form": form,
-        "transactions": queryset,
+        "transactions": page_obj,
         "title": 'Мои финансы',
-        "relevant_post": relevant_post
+        "relevant_post": relevant_post,
+        "transactions_grouped": grouped_transactions,
+        "user_wallets": accessible_wallets,
+
+        # Дашборд
+        "total_balance": total_balance,
+        "period_income": period_income,
+        "period_expense": period_expense,
     }
+
+    if request.headers.get('HX-Request'):
+        return render(request, "personal_finance/partials/transaction_items.html", context)
 
     return render(request, "personal_finance/transactions_list.html", context)
 
@@ -134,6 +190,16 @@ class UpdateTransaction(LoginRequiredMixin, UpdateView):
     form_class = UpdateTransactionForm
     template_name = 'personal_finance/edit_transaction.html'
     success_url = reverse_lazy('home')
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+
+        if obj.category and obj.category.name == "Накопления":
+            raise PermissionDenied(
+                "Редактирование автоматических транзакций накоплений запрещено. "
+                "Изменения вносятся только через финансовые цели."
+            )
+        return obj
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -191,17 +257,23 @@ class DeleteTransaction(LoginRequiredMixin, DeleteView):
 
 @login_required
 def analytics_view(request):
-    form = GraphicForm(data=request.GET or None)
+    form = GraphicForm(user=request.user, data=request.GET or None)
     queryset = (PersonalTransaction.objects.filter(user=request.user)
                 .select_related("category").order_by("-date", "-id"))
     chart_data = []
     selected_categories_ids = []
 
+    metrics = {
+        'total_sum': 0,
+        'total_count': 0,
+        'avg_check': 0,
+        'top_category': 0
+    }
+
     if form.is_valid():
         cd = form.cleaned_data
         today = timezone.now().date()
 
-        # Обработка периода
         if cd["period"] == "day":
             queryset = queryset.filter(date=today)
         elif cd["period"] == "week":
@@ -216,17 +288,24 @@ def analytics_view(request):
                 date__lte=cd["date_to"]
             )
 
-        # Тип операций
         if cd["operation_type"]:
             queryset = queryset.filter(operation_type=cd["operation_type"])
 
-        # Категории
         active_categories = list(cd.get("category", []))
         selected_categories_ids = [cat.id for cat in active_categories]
 
-        # Фильтрация по актуальным категориям
         if selected_categories_ids:
             queryset = queryset.filter(category__in=selected_categories_ids)
+
+        stats = queryset.aggregate(
+            total_sum=Sum('total'),
+            total_count=Count('id'),
+            avg_check=Avg('total')
+        )
+
+        metrics['total_sum'] = stats['total_sum'] or 0
+        metrics['total_count'] = stats['total_count'] or 0
+        metrics['avg_check'] = stats['avg_check'] or 0
 
         aggregation_data = (
             queryset
@@ -234,6 +313,9 @@ def analytics_view(request):
             .annotate(total=Sum("total"))
             .order_by("-total")
         )
+
+        if aggregation_data.exists():
+            metrics['top_category'] = aggregation_data[0]
 
         chart_data = [
             {"category": item["category__name"], "total": float(item["total"] or 0)}
@@ -246,6 +328,7 @@ def analytics_view(request):
         'chart_data': json.dumps(chart_data),
         'selected_category_ids': selected_categories_ids,
         'form': form,
+        'metrics': metrics
     }
 
     return render(request, 'personal_finance/analytics.html', context)
@@ -344,8 +427,8 @@ class UserWalletsList(LoginRequiredMixin, ListView):
     paginate_by = 5
 
     def get_queryset(self):
-        qs = (Wallet.objects.filter(user=self.request.user, is_active=True)
-        .order_by('-is_default'))
+        qs = (Wallet.accessible_for_user(self.request.user)
+        .order_by('-is_default', 'name'))
         return qs
 
     def get_context_data(self, **kwargs):
@@ -354,6 +437,102 @@ class UserWalletsList(LoginRequiredMixin, ListView):
         total = full_qs.aggregate(total=Sum('balance'))['total']
         context['total_sum'] = total or 0
         return context
+
+
+class WalletShareInviteCreateView(LoginRequiredMixin, FormView):
+    form_class = WalletShareInviteForm
+    template_name = 'personal_finance/wallet_share.html'
+    success_url = reverse_lazy('wallet_list')
+
+    def dispatch(self, request, *args, **kwargs):
+        self.wallet = Wallet.objects.filter(pk=kwargs["pk"], user=request.user, is_active=True).first()
+        if not self.wallet:
+            messages.error(request, "Нельзя отправить приглашение для этого счета.")
+            return redirect("wallet_list")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        kwargs["wallet"] = self.wallet
+        return kwargs
+
+    def form_valid(self, form):
+        username = form.cleaned_data["username"]
+        User = get_user_model()
+        target_user = User.objects.filter(username=username).first()
+
+        already_member = WalletMember.objects.filter(
+            wallet=self.wallet, user=target_user, status=WalletMember.MemberStatus.ACTIVE
+        ).exists()
+        if already_member:
+            form.add_error("username", "Пользователь уже имеет доступ к этому счету.")
+            return self.form_invalid(form)
+
+        invite, created = WalletShareInvite.objects.get_or_create(
+            wallet=self.wallet,
+            from_user=self.request.user,
+            to_user=target_user,
+            status=WalletShareInvite.InviteStatus.PENDING,
+            defaults={},
+        )
+        if not created:
+            form.add_error("username", "Приглашение уже отправлено и ожидает ответа.")
+            return self.form_invalid(form)
+
+        NotificationsService.create_notification(
+            actor=self.request.user,
+            recipient=target_user,
+            verb=f"приглашает вас разделить счет '{self.wallet.name}'",
+            content_obj=invite,
+        )
+        messages.success(self.request, "Приглашение отправлено.")
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["wallet"] = self.wallet
+        return context
+
+
+class WalletShareInviteRespondView(LoginRequiredMixin, View):
+    def post(self, request, pk, action):
+        invite = WalletShareInvite.objects.filter(
+            pk=pk, to_user=request.user, status=WalletShareInvite.InviteStatus.PENDING
+        ).first()
+        if not invite:
+            messages.error(request, "Приглашение не найдено или уже обработано.")
+            return redirect("notifications:list")
+
+        if action == "accept":
+            WalletMember.objects.update_or_create(
+                wallet=invite.wallet,
+                user=request.user,
+                defaults={
+                    "status": WalletMember.MemberStatus.ACTIVE,
+                    "role": WalletMember.RoleType.MEMBER,
+                    "invited_by": invite.from_user,
+                },
+            )
+            invite.status = WalletShareInvite.InviteStatus.ACCEPTED
+            messages.success(request, f"Вы получили доступ к счету '{invite.wallet.name}'.")
+        else:
+            invite.status = WalletShareInvite.InviteStatus.DECLINED
+            messages.info(request, "Приглашение отклонено.")
+
+        invite.responded_at = timezone.now()
+        invite.save(update_fields=["status", "responded_at", "updated_at"])
+        NotificationsService.create_notification(
+            actor=request.user,
+            recipient=invite.from_user,
+            verb=(
+                f"принял(а) приглашение в счет '{invite.wallet.name}'"
+                if action == "accept"
+                else f"отклонил(а) приглашение в счет '{invite.wallet.name}'"
+            ),
+            content_obj=invite.wallet,
+        )
+        return redirect("wallet_list")
 
 
 class WalletTransferView(LoginRequiredMixin, CreateView):

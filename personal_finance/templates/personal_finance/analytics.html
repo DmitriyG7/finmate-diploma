@@ -17,6 +17,66 @@
         </div>
     </div>
 
+    <div class="row mb-4 g-3 px-3">
+        <!-- Карточка: Всего -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="small mb-0 opacity-75">Общая сумма</h6>
+                        <i class="bi bi-wallet2 fs-4"></i>
+                    </div>
+                    <h3 class="mb-0 fw-bold">{{ metrics.total_sum|floatformat:0 }} ₽</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Карточка: Топ категория -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="small mb-0 text-muted">Топ категория</h6>
+                        <i class="bi bi-trophy text-warning fs-4"></i>
+                    </div>
+                    <h4 class="mb-0 text-truncate" title="{{ metrics.top_category.category__name }}">
+                        {% if metrics.top_category %}
+                            {{ metrics.top_category.category__name }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </h4>
+                </div>
+            </div>
+        </div>
+
+        <!-- Карточка: Средний чек -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="small mb-0 text-muted">Средний чек</h6>
+                        <i class="bi bi-calculator text-info fs-4"></i>
+                    </div>
+                    <h3 class="mb-0 fw-bold text-dark">{{ metrics.avg_check|floatformat:0 }} ₽</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Карточка: Количество -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="small mb-0 text-muted">Транзакций</h6>
+                        <i class="bi bi-hash text-secondary fs-4"></i>
+                    </div>
+                    <h3 class="mb-0 fw-bold text-dark">{{ metrics.total_count }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-4">
         <!-- Левая колонка: Фильтры -->
         <div class="col-md-4 col-lg-3">
@@ -26,9 +86,13 @@
                 </div>
                 <div class="card-body">
                     <form method="get" id="filter-form">
+
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted">Период</label>
-                            {{ form.period }}
+                            <!-- id для захвата в JS -->
+                            <div id="period-select-wrapper">
+                                {{ form.period }}
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -36,7 +100,7 @@
                             {{ form.operation_type }}
                         </div>
 
-                        <div class="row g-2 mb-3">
+                        <div id="custom-date-range" class="row g-2 mb-3" style="display: none;">
                             <div class="col-6">
                                 <label class="form-label small fw-bold text-muted">С даты</label>
                                 {{ form.date_from }}
@@ -94,6 +158,66 @@
     </div>
 </div>
 
+<!-- Список транзакций под графиком -->
+<div class="row mt-4 px-3 pb-5">
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-secondary"><i class="bi bi-list-ul"></i> Детализация операций</h5>
+                <span class="badge bg-light text-dark border">{{ user_transactions.count }} записей</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Дата</th>
+                                <th>Категория</th>
+                                <th>Счет</th>
+                                <th>Описание</th>
+                                <th class="text-end pe-4">Сумма</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in user_transactions %}
+                            <tr>
+                                <td class="ps-4 small text-muted">
+                                    {{ transaction.date|date:"d.m.Y" }}
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill bg-light text-dark border fw-normal">
+                                        {{ transaction.category.name }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ transaction.wallet.name }}</small>
+                                </td>
+                                <td>
+                                    <span class="text-truncate d-inline-block" style="max-width: 250px;">
+                                        {{ transaction.description|default:"—" }}
+                                    </span>
+                                </td>
+                                <td class="text-end pe-4 fw-bold {% if transaction.operation_type == 'expense' %}text-danger{% else %}text-success{% endif %}">
+                                    {% if transaction.operation_type == 'expense' %}-{% else %}+{% endif %}
+                                    {{ transaction.total|floatformat:2 }} ₽
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    Нет данных за выбранный период
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <style>
     .max-h-300 { max-height: 300px; }
     .custom-scrollbar::-webkit-scrollbar { width: 4px; }
@@ -106,10 +230,8 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        // Регистрация плагина меток
         Chart.register(ChartDataLabels);
 
-        // Стилизация форм
         document.querySelectorAll('#filter-form select, #filter-form input[type="text"], #filter-form input[type="date"]').forEach(el => {
             el.classList.add('form-control', 'form-control-sm');
         });
@@ -123,6 +245,34 @@
         const noDataBlock = document.getElementById('no-data');
         const chartWrapper = document.getElementById('chart-wrapper');
         let myChart;
+
+        const periodSelect = document.querySelector('select[name="period"]');
+const customDateRange = document.getElementById('custom-date-range');
+
+function toggleCustomDates() {
+    if (periodSelect.value === 'custom') {
+        customDateRange.style.display = 'flex';
+    } else {
+        customDateRange.style.display = 'none';
+        customDateRange.querySelectorAll('input').forEach(input => input.value = '');
+    }
+}
+
+if (periodSelect) {
+    periodSelect.addEventListener('change', toggleCustomDates);
+    // Вызываем сразу при загрузке, чтобы проверить текущее состояние
+    toggleCustomDates();
+}
+
+        if (window.location.hash === "#details") {
+        const detailsElement = document.getElementById('details');
+        if (detailsElement) {
+            // Плавная прокрутка с небольшим отступом сверху (чтобы заголовок не прилипал к краю)
+            const yOffset = -20;
+            const y = detailsElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({top: y, behavior: 'smooth'});
+        }
+    }
 
         if (!rawData || rawData.length === 0) {
             chartWrapper.classList.add('d-none');
