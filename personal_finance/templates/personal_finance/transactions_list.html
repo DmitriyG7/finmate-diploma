@@ -3,197 +3,252 @@
 {% load widget_tweaks %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-primary mb-0"><i class="bi bi-list-check"></i> История операций</h2>
-        <div class="d-flex gap-2">
-            <a href="{% url 'wallet_transfer' %}" class="btn btn-outline-primary shadow-sm">
-                <i class="bi bi-arrow-left-right"></i> Перевод
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<div class="container py-4 fintech-theme">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4 animate-fade-in-up" style="animation-delay: 0.1s;">
+        <div>
+            <h2 class="text-dark fw-bold mb-1 d-flex align-items-center">
+                <div class="icon-glow-primary me-3">
+                    <i class="bi bi-wallet2 text-primary"></i>
+                </div>
+                История операций
+            </h2>
+            <p class="text-muted small mb-0 fs-14">Управление вашими денежными потоками и анализ расходов</p>
+        </div>
+        <div class="d-flex gap-2 w-200 w-sm-auto">
+            <a href="{% url 'wallet_transfer' %}" class="btn btn-fintech-outline px-4 py-2-5 rounded-pill shadow-sm transition-all flex-grow-1 flex-sm-grow-0 fw-semibold">
+                <i class="bi bi-arrow-left-right me-2"></i>Перевод
             </a>
-            <a href="{% url 'add_transaction' %}" class="btn btn-success shadow-sm">
-                <i class="bi bi-plus-lg"></i> Новая транзакция
+            <a href="{% url 'add_transaction' %}" class="btn btn-fintech-primary px-4 py-2-5 rounded-pill shadow-lg transition-all flex-grow-1 flex-sm-grow-0 fw-semibold text-white">
+                <i class="bi bi-plus-lg me-2"></i>Новая транзакция
             </a>
         </div>
     </div>
 
-    <!-- Блок фильтров (без изменений) -->
-    <div class="card shadow-sm border-0 mb-5">
-        <div class="card-header bg-white py-3">
-            <h5 class="mb-0 text-muted small fw-bold text-uppercase">Фильтрация</h5>
-        </div>
-        <div class="card-body">
-            <form method="get" novalidate id="filter-form">
-                <div class="row g-3 align-items-end">
-                    <div class="col-lg-3 col-md-6">
-                        <label class="form-label small text-muted">{{ form.period.label }}</label>
-                        {{ form.period }}
+    <div class="row g-4 mb-5 position-relative" style="z-index: 10;">
+        <div class="col-lg-4 col-md-6 dropdown fintech-dropdown-container animate-fade-in-up" style="animation-delay: 0.2s;">
+            <div class="card border-0 rounded-4 h-100 transition-all card-hover premium-wallet-card main-balance-card"
+                 aria-expanded="false"
+                 style="cursor: pointer;">
+                <div class="card-bg-decoration dec-1"></div>
+                <div class="card-bg-decoration dec-2"></div>
+
+                <div class="card-body p-4 d-flex flex-column justify-content-between position-relative z-index-1">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-white-50 small fw-medium text-uppercase tracking-wider fs-12">Доступно средств</span>
+                            <i class="bi bi-chevron-down text-white-50 small"></i>
+                        </div>
+                        <i class="bi bi-sim-fill text-white-50 fs-4 opacity-50"></i>
                     </div>
-                    <div id="date-range-container" class="col-lg-6 col-md-12" style="display: none;">
-                        <div class="row g-2">
-                            <!-- Поле даты НАЧАЛА -->
-                            <div class="col-6 position-relative"> <!-- Добавлено position-relative -->
-                                <label class="form-label small text-muted">{{ form.date_from.label }}</label>
-                                {{ form.date_from|add_class:"form-control" }}
+                    <div>
+                        <h2 class="fw-bolder text-white mb-0 tracking-tight d-flex align-items-baseline gap-1" style="font-size: 2.2rem;">
+                            {{ total_balance|floatformat:0 }} <span class="fs-4 fw-medium text-white-50">₽</span>
+                        </h2>
+                    </div>
+                </div>
+            </div>
 
-                                {% if form.date_from.errors %}
-                                    {% for error in form.date_from.errors %}
-                                        <!-- Текст вырван из потока, чтобы не толкать нижние элементы -->
-                                        <div class="text-danger position-absolute start-0 w-100 ps-2"
-                                             style="font-size: 11px; bottom: -18px; line-height: 1;">
-                                            {{ error }}
-                                        </div>
-                                    {% endfor %}
-                                {% endif %}
+            <ul class="dropdown-menu dropdown-menu-end border-0 rounded-4 p-3 mt-2 glass-dropdown" style="min-width: 280px;">
+                <li class="px-2 py-1 mb-2 border-bottom border-light">
+                    <span class="text-muted fw-bold text-uppercase fs-11 tracking-wider">Мои счета</span>
+                </li>
+                {% for wallet in user_wallets %}
+                    <li>
+                        <div class="dropdown-item d-flex justify-content-between align-items-center px-3 py-2-5 rounded-3 bg-transparent text-dark transition-all hover-glass" style="cursor: default;">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                    <i class="bi bi-credit-card-2-back fs-14"></i>
+                                </div>
+                                <span class="fw-semibold fs-14">{{ wallet.name }}</span>
                             </div>
+                            <span class="fw-bold text-dark fs-14">
+                                {{ wallet.balance|floatformat:0 }} ₽
+                            </span>
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="px-2 text-muted small text-center py-3">Нет активных счетов</li>
+                {% endfor %}
+            </ul>
+        </div>
 
-                            <!-- Поле даты КОНЦА -->
-                            <div class="col-6 position-relative"> <!-- Добавлено position-relative -->
-                                <label class="form-label small text-muted">{{ form.date_to.label }}</label>
-                                {{ form.date_to|add_class:"form-control" }}
+        <div class="col-lg-4 col-md-6 animate-fade-in-up" style="animation-delay: 0.3s;">
+            <div class="card shadow-fintech-success border-0 rounded-4 bg-white h-100 transition-all card-hover">
+                <div class="card-body p-4 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-secondary small fw-bold d-block mb-2 text-uppercase tracking-wider fs-11">Доходы за период</span>
+                        <h3 class="fw-bolder text-success mb-0 tracking-tight text-gradient-success">
+                            +{{ period_income|floatformat:0 }} <span class="fs-5 fw-medium opacity-75">₽</span>
+                        </h3>
+                    </div>
+                    <div class="fintech-icon-badge bg-success-subtle-fintech text-success">
+                        <i class="bi bi-arrow-up-right fs-4 fw-bold"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                                {% if form.date_to.errors %}
-                                    {% for error in form.date_to.errors %}
-                                        <div class="text-danger position-absolute start-0 w-100 ps-2"
-                                             style="font-size: 11px; bottom: -18px; line-height: 1;">
-                                            {{ error }}
-                                        </div>
-                                    {% endfor %}
-                                {% endif %}
+        <div class="col-lg-4 col-md-12 animate-fade-in-up" style="animation-delay: 0.4s;">
+            <div class="card shadow-fintech-danger border-0 rounded-4 bg-white h-100 transition-all card-hover">
+                <div class="card-body p-4 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-secondary small fw-bold d-block mb-2 text-uppercase tracking-wider fs-11">Расходы за период</span>
+                        <h3 class="fw-bolder text-danger mb-0 tracking-tight text-gradient-danger">
+                            −{{ period_expense|floatformat:0 }} <span class="fs-5 fw-medium opacity-75">₽</span>
+                        </h3>
+                    </div>
+                    <div class="fintech-icon-badge bg-danger-subtle-fintech text-danger">
+                        <i class="bi bi-arrow-down-left fs-4 fw-bold"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-fintech border-0 rounded-4 mb-5 bg-white animate-fade-in-up" style="animation-delay: 0.5s; z-index: 5; position: relative;">
+        <div class="card-body p-4 p-md-5">
+            <div class="d-flex align-items-center justify-content-between pb-2 border-bottom border-light cursor-pointer select-none"
+                 data-bs-toggle="collapse"
+                 data-bs-target="#filterCollapse"
+                 aria-expanded="true"
+                 aria-controls="filterCollapse">
+                <div class="d-flex align-items-center">
+                    <div class="bg-light text-secondary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                        <i class="bi bi-sliders2 fs-5"></i>
+                    </div>
+                    <h5 class="mb-0 text-dark fw-bold fs-16">Параметры фильтрации</h5>
+                </div>
+                <div class="text-muted me-1">
+                    <i class="bi bi-chevron-up filter-chevron-icon transition-all fs-14"></i>
+                </div>
+            </div>
+
+            <div class="collapse show" id="filterCollapse">
+                <form method="get" novalidate id="filter-form" class="pt-4">
+                    <div class="row g-4 align-items-end mb-4">
+                        <div class="col-lg-3 col-md-6">
+                            <label class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">{{ form.period.label }}</label>
+                            {{ form.period|add_class:"form-select form-select-fintech" }}
+                        </div>
+
+                        <div id="date-range-container" class="col-lg-6 col-md-12" style="display: none;">
+                            <div class="row g-3">
+                                <div class="col-6 position-relative">
+                                    <label class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">{{ form.date_from.label }}</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 border-fintech text-muted"><i class="bi bi-calendar3"></i></span>
+                                        {{ form.date_from|add_class:"form-control form-control-fintech border-start-0 ps-0" }}
+                                    </div>
+                                </div>
+                                <div class="col-6 position-relative">
+                                    <label class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">{{ form.date_to.label }}</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 border-fintech text-muted"><i class="bi bi-calendar3"></i></span>
+                                        {{ form.date_to|add_class:"form-control form-control-fintech border-start-0 ps-0" }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6">
+                            <label class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">{{ form.operation_type.label }}</label>
+                            {{ form.operation_type|add_class:"form-select form-select-fintech" }}
+                        </div>
+
+                        <div class="col-lg-3 col-md-6">
+                            <label class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">Выбрать счет</label>
+                            {{ form.wallet|add_class:"form-select form-select-fintech" }}
+                        </div>
+
+                        <div class="col-lg-3 col-md-6 ms-auto">
+                            <div class="d-flex gap-2 w-100">
+                                <button type="submit" class="btn btn-fintech-dark py-2-5 rounded-3 fw-semibold transition-all flex-grow-1 shadow-sm">
+                                    Применить
+                                </button>
+                                <a href="{% url 'home' %}" class="btn btn-light py-2-5 rounded-3 fw-semibold transition-all text-secondary" style="width: 48px;" title="Сбросить фильтры">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </a>
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-3 col-md-6">
-                        <label class="form-label small text-muted">{{ form.operation_type.label }}</label>
-                        {{ form.operation_type }}
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <label class="form-label small text-muted">Выбрать счет</label>
-                        {{ form.wallet|add_class:"form-select" }}
-                    </div>
-                    <div class="col-lg-2 col-md-6 ms-auto">
-                        <button type="submit" class="btn btn-primary w-100">Найти</button>
-                    </div>
-                </div>
 
-                <div class="mt-4 pt-3 border-top">
-                    <label class="form-label small fw-bold text-muted mb-3">{{ form.category.label }}</label>
-                    <div class="d-flex flex-wrap gap-2">
-                        {% for category in form.category.field.queryset %}
-                            <label class="category-badge rounded-pill px-3 py-2 border transition-all
-                                {% if category.pk|stringformat:'s' in form.category.value %}
-                                    bg-primary text-white border-primary shadow-sm
-                                {% else %}
-                                    bg-light text-dark
-                                {% endif %}"
-                                   style="cursor: pointer; user-select: none;">
-                                <input type="checkbox" name="{{ form.category.name }}" value="{{ category.pk }}"
-                                       {% if category.pk|stringformat:'s' in form.category.value %}checked{% endif %}
-                                       class="category-checkbox d-none">
-                                <span class="small">{{ category.name }}</span>
-                            </label>
-                        {% endfor %}
+                    <div class="bg-light-soft p-3 p-md-4 rounded-4 border border-light">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label text-dark fs-14 fw-bold mb-0">Категории операций</label>
+                            <span id="clearCategories" class="badge bg-white border text-danger cursor-pointer fw-semibold hover-scale" style="display: none; padding: 6px 10px;">
+                                <i class="bi bi-x me-1"></i>Сбросить выбор
+                            </span>
+                        </div>
+
+                        <div class="input-group mb-3 shadow-sm rounded-pill overflow-hidden border border-light bg-white">
+                            <span class="input-group-text bg-transparent border-0 ps-4 pe-2 text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" id="categorySearch" class="form-control border-0 bg-transparent py-2-5 fs-14 shadow-none" placeholder="Найти категорию...">
+                        </div>
+
+                        <div id="categoryContainer" class="d-flex flex-wrap gap-2 overflow-auto custom-scrollbar p-1 pb-2" style="max-height: 180px;">
+                            {% for category in form.category.field.queryset %}
+                                <div class="category-chip-wrapper">
+                                    <input type="checkbox" class="btn-check category-checkbox"
+                                           id="cat_{{ category.pk }}"
+                                           name="{{ form.category.name }}"
+                                           value="{{ category.pk }}"
+                                           {% if category.pk|stringformat:'s' in form.category.value %}checked{% endif %}>
+                                    <label class="btn btn-fintech-chip rounded-pill px-3 py-2 transition-all category-chip d-flex align-items-center gap-2"
+                                           for="cat_{{ category.pk }}"
+                                           data-name="{{ category.name|lower }}">
+                                        <span class="chip-dot"></span>
+                                        {{ category.name }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 
     {% if relevant_post %}
-    <div class="alert alert-info d-flex align-items-center" role="alert">
-        <i class="bi bi-lightbulb-fill me-2"></i> <!-- Иконка лампочки, если есть Bootstrap Icons -->
-        <div>
-            <strong>Совет по теме:</strong>
-            {{ relevant_post.title }}.
-            <a href="{% url 'blog:post_detail' relevant_post.slug %}" class="alert-link">Читать статью ({{ relevant_post.read_time }} мин)</a>
+    <div class="alert bg-white border-0 p-4 rounded-4 shadow-fintech mb-5 animate-fade-in-up d-flex align-items-center position-relative overflow-hidden" style="animation-delay: 0.6s;">
+        <div class="position-absolute top-0 start-0 h-100 w-1 bg-fintech-gradient"></div>
+        <div class="icon-glow-info me-4">
+            <i class="bi bi-lightbulb-fill text-info fs-4"></i>
         </div>
+        <div class="flex-grow-1">
+            <span class="text-info fs-11 fw-bold text-uppercase tracking-wider d-block mb-1">Совет от аналитики</span>
+            <strong class="text-dark fs-15">{{ relevant_post.title }}</strong>
+        </div>
+        <a href="{% url 'blog:post_detail' relevant_post.slug %}" class="btn btn-light rounded-pill px-4 py-2 fs-14 fw-semibold text-primary transition-all text-nowrap ms-3">
+            Читать ({{ relevant_post.read_time }} мин)
+        </a>
     </div>
     {% endif %}
 
-    <!-- Список транзакций -->
-    <div class="row">
+    <div class="row animate-fade-in-up" style="animation-delay: 0.7s;">
         <div class="col-12">
-            <h5 class="text-muted mb-3">Записи за период</h5>
+            <div class="d-flex align-items-center mb-4">
+                <h4 class="text-dark fw-bold mb-0">История транзакций</h4>
+            </div>
+
             {% if transactions %}
-                <div class="transaction-list shadow-sm rounded">
-                    {% for t in transactions %}
-                        <div class="transaction-item d-flex justify-content-between align-items-center p-3 bg-white border-bottom hover-bg-light transition-all">
-                            <div class="d-flex align-items-center">
-                                <!-- Иконка меняет цвет в зависимости от типа -->
-                                <div class="category-icon me-3 d-none d-sm-flex align-items-center justify-content-center rounded-circle
-                                    {% if t.operation_type == 'income' %}bg-success-subtle text-success
-                                    {% elif t.operation_type == 'expense' %}bg-danger-subtle text-danger
-                                    {% else %}bg-primary-subtle text-primary{% endif %}"
-                                    style="width: 45px; height: 45px;">
-                                    <i class="bi {% if t.operation_type == 'transfer' %}bi-arrow-left-right{% else %}bi-tag{% endif %}"></i>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0 fw-bold">{{ t.category.name }}</h6>
-                                    <!-- Описание с указанием кошелька -->
-                                    <p class="mb-0 text-muted small">
-                                        {{ t.description|default:"Без описания" }}
-                                        <span class="badge bg-light text-dark fw-normal border ms-1">{{ t.wallet.name }}</span>
-                                    </p>
-                                    <small class="text-uppercase fw-bold text-secondary" style="font-size: 10px;">{{ t.date|date:"d M Y" }}</small>
-                                </div>
-                            </div>
-
-                            <div class="text-end d-flex align-items-center gap-4">
-                                <!-- Цвет суммы -->
-                                <div class="fw-bold fs-5
-                                    {% if t.operation_type == 'income' %}text-success
-                                    {% elif t.operation_type == 'expense' %}text-danger
-                                    {% else %}text-primary{% endif %}">
-                                    {% if t.operation_type == 'income' %}+{% elif t.operation_type == 'expense' %}−{% endif %}{{ t.total|floatformat:0 }} ₽
-                                </div>
-
-                                <div class="actions d-flex gap-2">
-                                    <!-- Скрываем кнопку редактирования для системных переводов, чтобы не сломать баланс -->
-                                    {% if t.operation_type != 'transfer' %}
-                                    <a href="{% url 'edit_transaction' t.pk %}" class="btn btn-sm btn-outline-secondary border-0" title="Редактировать">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-outline-danger border-0"
-                                            data-bs-toggle="modal" data-bs-target="#deleteModal{{ t.pk }}">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                    {% else %}
-                                    <span class="text-muted small p-2"><i class="bi bi-lock-fill" title="Системная запись"></i></span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Модалка удаления (только для обычных транзакций) -->
-                        {% if t.operation_type != 'transfer' %}
-                        <div class="modal fade" id="deleteModal{{ t.pk }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content border-0 shadow">
-                                    <div class="modal-header border-0">
-                                        <h5 class="modal-title fw-bold">Удалить операцию?</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body py-4">
-                                        Вы уверены, что хотите удалить <strong>{{ t.category.name }}</strong> на сумму <strong>{{ t.total }} ₽</strong>?
-                                        Баланс кошелька будет пересчитан автоматически.
-                                    </div>
-                                    <div class="modal-footer border-0">
-                                        <form method="post" action="{% url 'delete_transaction' t.pk %}" class="m-0">
-                                            {% csrf_token %}
-                                            <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Отмена</button>
-                                            <button type="submit" class="btn btn-danger px-4">Удалить</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                    {% endfor %}
+                <div id="transaction-container" class="transaction-list bg-white rounded-4 shadow-fintech p-2">
+                    {% include "personal_finance/partials/transaction_items.html" %}
                 </div>
             {% else %}
-                <div class="card border-0 shadow-sm text-center py-5">
-                    <div class="card-body">
-                        <i class="bi bi-search display-1 text-light"></i>
-                        <p class="lead text-muted mt-3">Ничего не найдено</p>
+                <div class="card border-0 shadow-fintech text-center py-5 rounded-4 bg-white">
+                    <div class="card-body py-5 d-flex flex-column align-items-center">
+                        <div class="empty-state-icon mb-4 d-flex align-items-center justify-content-center rounded-circle bg-light" style="width: 80px; height: 80px;">
+                            <i class="bi bi-receipt fs-1 text-muted opacity-50"></i>
+                        </div>
+                        <h4 class="text-dark fw-bold mb-2">Операций не найдено</h4>
+                        <p class="text-muted fs-14 mx-auto mb-4" style="max-width: 350px;">Мы не нашли транзакций за выбранный период. Попробуйте изменить фильтры или выберите другие даты.</p>
+                        <button onclick="document.querySelector('a[href=\'{% url 'home' %}\']').click()" class="btn btn-light rounded-pill px-4 fw-semibold text-dark">
+                            Сбросить фильтры
+                        </button>
                     </div>
                 </div>
             {% endif %}
@@ -205,29 +260,50 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const filterForm = document.getElementById('filter-form');
+        const categorySearch = document.getElementById('categorySearch');
+        const clearBtn = document.getElementById('clearCategories');
 
-        // 1. Авто-отправка для всех селектов (кроме случая с кастомным периодом)
+        if (categorySearch) {
+            categorySearch.addEventListener('input', function(e) {
+                const text = e.target.value.toLowerCase().trim();
+                const wrappers = document.querySelectorAll('.category-chip-wrapper');
+
+                wrappers.forEach(wrapper => {
+                    const name = wrapper.querySelector('.category-chip').getAttribute('data-name');
+                    wrapper.style.display = name.includes(text) ? 'block' : 'none';
+                });
+            });
+        }
+
         const autoSubmitSelects = filterForm.querySelectorAll('select');
         autoSubmitSelects.forEach(select => {
             select.addEventListener('change', function() {
-                // ИСПРАВЛЕНИЕ: если это поле периода и выбрано 'custom', ничего не делаем,
-                // даем возможность пользователю ввести даты.
-                if (this.name === 'period' && this.value === 'custom') {
-                    return;
-                }
+                if (this.name === 'period' && this.value === 'custom') return;
                 filterForm.submit();
             });
         });
 
-        // 2. Авто-отправка для чекбоксов категорий (без изменений)
-        const categoryCheckboxes = filterForm.querySelectorAll('.category-checkbox');
+        function updateClearButton() {
+            const checkedCount = document.querySelectorAll('.category-checkbox:checked').length;
+            if (clearBtn) clearBtn.style.display = checkedCount > 0 ? 'inline' : 'none';
+        }
+
+        const categoryCheckboxes = document.querySelectorAll('.category-checkbox');
         categoryCheckboxes.forEach(checkbox => {
             checkbox.addEventListener('change', function() {
-                filterForm.submit();
+                updateClearButton();
             });
         });
 
-        // 3. Логика отображения диапазона дат (без изменений)
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+                categoryCheckboxes.forEach(cb => cb.checked = false);
+                updateClearButton();
+            });
+        }
+
+        updateClearButton();
+
         const periodSelect = document.querySelector('select[name="period"]');
         const dateRange = document.getElementById('date-range-container');
 
@@ -238,48 +314,183 @@
         }
 
         if (periodSelect) {
-            periodSelect.addEventListener('change', function(e) {
+            periodSelect.addEventListener('change', function() {
                 toggleDates();
-                if (this.value !== 'custom') {
-                    filterForm.submit();
-                }
+                if (this.value !== 'custom') filterForm.submit();
             });
             toggleDates();
         }
 
-        // Конфигурация календаря
         const fpConfig = {
             locale: "ru",
-            dateFormat: "d.m.Y", // Соответствует твоему input_formats в Django
-            allowInput: true,    // Позволяет вводить руками, если нужно
-            disableMobile: "true", // Чтобы на телефонах открывался красивый виджет, а не системный
+            dateFormat: "d.m.Y",
+            allowInput: true,
+            disableMobile: "true",
             animate: "true",
             maxDate: "today",
         };
-
-        // Инициализация для обоих полей
         flatpickr("input[name='date_from']", fpConfig);
         flatpickr("input[name='date_to']", fpConfig);
+
+        if (window.matchMedia("(max-width: 991px) or (pointer: coarse)").matches) {
+            const balanceCard = document.querySelector('.main-balance-card');
+            if (balanceCard) {
+                balanceCard.setAttribute('data-bs-toggle', 'dropdown');
+                new bootstrap.Dropdown(balanceCard);
+            }
+        }
     });
 </script>
 <script src="{% static 'personal_finance/js/transactions_category_btn.js' %}"></script>
 {% endblock %}
 
 <style>
-    .transition-all { transition: all 0.2s ease-in-out; }
-    .category-badge:hover { filter: brightness(0.9); transform: translateY(-1px); }
-    .hover-bg-light:hover { background-color: #f8f9fa !important; }
-    .bg-success-subtle { background-color: #d1e7dd; }
-    .bg-danger-subtle { background-color: #f8d7da; }
-    .bg-primary-subtle { background-color: #cfe2ff; }
+    /* =========================================
+       FINTECH PREMIUM STYLES (UPDATED)
+       ========================================= */
 
-    .flatpickr-day.selected {
-    background: #0d6efd !important; /* Цвет твоей основной темы Bootstrap */
-    border-color: #0d6efd !important;
+    .fintech-theme {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    .flatpickr-calendar {
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        border: none;
+
+    body { background-color: #f8fafc !important; color: #1e293b; }
+    .select-none { user-select: none; }
+    .cursor-pointer { cursor: pointer; }
+
+    /* Утилиты и типографика */
+    .fs-11 { font-size: 11px; }
+    .fs-12 { font-size: 12px; }
+    .fs-14 { font-size: 14px; }
+    .fs-15 { font-size: 15px; }
+    .fs-16 { font-size: 16px; }
+    .tracking-wider { letter-spacing: 0.05em; }
+    .tracking-tight { letter-spacing: -0.02em; }
+    .z-index-1 { z-index: 1; }
+    .bg-light-soft { background-color: #fcfcfd; }
+
+    .transition-all { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .hover-scale:hover { transform: scale(1.02); }
+
+    /* Анимация появления */
+    @keyframes fadeInUp {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
     }
+    .animate-fade-in-up {
+        opacity: 0;
+        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Мягкие тени */
+    .shadow-fintech { box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04) !important; }
+    .shadow-fintech-success { box-shadow: 0 10px 30px rgba(16, 185, 129, 0.06) !important; }
+    .shadow-fintech-danger { box-shadow: 0 10px 30px rgba(239, 68, 68, 0.06) !important; }
+
+    .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08) !important;
+    }
+
+    /* Свечение иконок */
+    .icon-glow-primary {
+        display: flex; align-items: center; justify-content: center;
+        width: 44px; height: 44px; border-radius: 12px;
+        background: rgba(79, 70, 229, 0.1); color: #4f46e5;
+    }
+    .icon-glow-info {
+        display: flex; align-items: center; justify-content: center;
+        width: 48px; height: 48px; border-radius: 14px;
+        background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    }
+
+    /* Модернизированные бейджи для трендов (Взамен сломанных огромных иконок) */
+    .fintech-icon-badge {
+        width: 44px; height: 44px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.3s ease;
+    }
+    .bg-success-subtle-fintech { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+    .bg-danger-subtle-fintech { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+    .card-hover:hover .fintech-icon-badge { transform: scale(1.08); }
+
+    /* Текстовые градиенты */
+    .text-gradient-success {
+        background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .text-gradient-danger {
+        background: linear-gradient(135deg, #e11d48 0%, #ef4444 100%);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .bg-fintech-gradient { background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%); }
+
+    /* Premium Wallet Card & Dropdown Fix */
+    .fintech-dropdown-container { position: relative; }
+    .premium-wallet-card {
+        background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        box-shadow: 0 15px 35px rgba(15, 23, 42, 0.2) !important;
+    }
+    .card-bg-decoration { position: absolute; border-radius: 50%; filter: blur(40px); opacity: 0.4; z-index: 0; }
+    .dec-1 { width: 150px; height: 150px; background: #6366f1; top: -50px; right: -30px; }
+    .dec-2 { width: 200px; height: 200px; background: #38bdf8; bottom: -80px; left: -50px; opacity: 0.2; }
+
+    /* Исправление перекрытия выпадающего списка */
+    .glass-dropdown {
+        background: rgba(255, 255, 255, 0.9) !important;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.5) !important;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15) !important;
+        z-index: 1050 !important;
+    }
+    .hover-glass:hover { background: rgba(0,0,0,0.03) !important; transform: translateX(4px); }
+
+    /* Поворот стрелочки при сворачивании фильтров */
+    .filter-chevron-icon { display: inline-block; }
+    [aria-expanded="false"] .filter-chevron-icon { transform: rotate(180deg); }
+
+    /* Кнопки */
+    .btn-fintech-primary { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); border: none; }
+    .btn-fintech-primary:hover {
+        background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+        box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3) !important; transform: translateY(-2px);
+    }
+    .btn-fintech-outline { border: 2px solid #e2e8f0; color: #475569; background: white; }
+    .btn-fintech-outline:hover { border-color: #cbd5e1; background: #f8fafc; color: #1e293b; }
+    .btn-fintech-dark { background-color: #0f172a; color: white; border: none; }
+    .btn-fintech-dark:hover { background-color: #1e293b; color: white; transform: translateY(-1px); }
+
+    /* Формы */
+    .border-fintech { border-color: #e2e8f0; }
+    .form-control-fintech, .form-select-fintech {
+        border: 1px solid #e2e8f0; background-color: #fff; color: #334155;
+        padding: 0.6rem 1.2rem; font-size: 14px; font-weight: 500; border-radius: 10px;
+    }
+    .form-control-fintech:focus, .form-select-fintech:focus {
+        border-color: #818cf8; background-color: #fff; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    /* Чипсы категорий */
+    .btn-fintech-chip { background: #fff; border: 1px solid #e2e8f0; color: #64748b; font-size: 13px; font-weight: 500; }
+    .chip-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #cbd5e1; display: inline-block; transition: all 0.2s; }
+    .btn-fintech-chip:hover { border-color: #94a3b8; color: #334155; }
+    .btn-check:checked + .category-chip { background-color: #eff6ff !important; border-color: #3b82f6 !important; color: #1d4ed8 !important; }
+    .btn-check:checked + .category-chip .chip-dot { background-color: #3b82f6; box-shadow: 0 0 8px rgba(59, 130, 246, 0.6); }
+
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+
+    @media (min-width: 992px) and (pointer: fine) {
+        .dropdown:hover .dropdown-menu { display: block; margin-top: 0; animation: fadeIn 0.2s ease-in-out; }
+        .main-balance-card { pointer-events: none; }
+        .dropdown:hover .main-balance-card { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(15, 23, 42, 0.3) !important; }
+    }
+    @media (max-width: 991px), (pointer: coarse) {
+        .dropdown.show .dropdown-menu { display: block; }
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 {% endblock %}

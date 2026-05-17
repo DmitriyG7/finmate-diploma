@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'interactions',
     'notifications',
     'widget_tweaks',
+    'advisor',
 ]
 
 MIDDLEWARE = [

@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.db import models
 
 from finmate import settings
-from personal_finance.models import Wallet, WalletTransfer, PersonalTransaction, Category
+from personal_finance.models import Wallet, WalletTransfer, PersonalTransaction, Category, WalletMember
 from personal_finance.models import OperationType
 from django.contrib.auth import get_user_model
 
@@ -40,7 +40,15 @@ class FinanceService:
             wallets = list(
                 Wallet.objects
                 .select_for_update()
-                .filter(id__in=[from_wallet_id, to_wallet_id], user=user, is_active=True)
+                .filter(
+                    id__in=[from_wallet_id, to_wallet_id],
+                    is_active=True,
+                )
+                .filter(
+                    models.Q(user=user)
+                    | models.Q(memberships__user=user, memberships__status=WalletMember.MemberStatus.ACTIVE)
+                )
+                .distinct()
             )
 
             if len(wallets) != 2:
@@ -83,7 +91,8 @@ class FinanceService:
                 date=date,
                 category=category,
                 operation_type=OperationType.TRANSFER,
-                description=f"Перевод на счет {to_wallet.name}"
+                description=f"Перевод на счет {to_wallet.name}",
+                performed_by=user,
             )
 
             PersonalTransaction.objects.create(
@@ -93,7 +102,8 @@ class FinanceService:
                 date=date,
                 category=category,
                 operation_type=OperationType.TRANSFER,
-                description=f"Перевод со счета {from_wallet.name}"
+                description=f"Перевод со счета {from_wallet.name}",
+                performed_by=user,
             )
             return transfer
 
@@ -113,7 +123,13 @@ class FinanceService:
         with transaction.atomic():
             wallet = (Wallet.objects
             .select_for_update()
-            .filter(id=wallet_id, user=user, is_active=True).first())
+            .filter(id=wallet_id, is_active=True)
+            .filter(
+                models.Q(user=user)
+                | models.Q(memberships__user=user, memberships__status=WalletMember.MemberStatus.ACTIVE)
+            )
+            .distinct()
+            .first())
 
             if not wallet:
                 raise ValidationError("Кошелек не найден или недоступен")
@@ -135,7 +151,8 @@ class FinanceService:
                 operation_type=operation_type,
                 category=category,
                 description=description,
-                date=date
+                date=date,
+                performed_by=user,
             )
             return transaction_obj
 
@@ -151,7 +168,6 @@ class FinanceService:
     ):
         with transaction.atomic():
 
-            # Лочим транзакцию и берём актуальные данные
             transaction_obj = PersonalTransaction.objects.select_for_update().get(
                 id=transaction_obj.id,
                 user=transaction_obj.user
@@ -160,15 +176,15 @@ class FinanceService:
             old_total = transaction_obj.total
             old_wallet_id = transaction_obj.wallet_id
 
-            # Если кошелёк не передан — работаем со старым
             target_wallet_id = new_wallet.id if new_wallet else old_wallet_id
 
-            # Лочим задействованные кошельки
             wallet_ids = {old_wallet_id, target_wallet_id}
             wallets = Wallet.objects.select_for_update().filter(
                 id__in=wallet_ids,
-                user=transaction_obj.user,
                 is_active=True
+            ).filter(
+                models.Q(user=transaction_obj.user)
+                | models.Q(memberships__user=transaction_obj.user, memberships__status=WalletMember.MemberStatus.ACTIVE)
             )
 
             wallets_dict = {w.id: w for w in wallets}
@@ -261,7 +277,13 @@ class FinanceService:
             if del_transaction is None:
                 raise ValidationError("Транзакция не найдена или уже удалена")
 
-            wallets = Wallet.objects.select_for_update().filter(id=del_transaction.wallet.id, user=transaction_obj.user)
+            wallets = Wallet.objects.select_for_update().filter(
+                id=del_transaction.wallet.id,
+                is_active=True,
+            ).filter(
+                models.Q(user=transaction_obj.user)
+                | models.Q(memberships__user=transaction_obj.user, memberships__status=WalletMember.MemberStatus.ACTIVE)
+            )
             blocked_wallet = wallets.first()
             if not blocked_wallet:
                 raise ValidationError("Счет не найден или недоступен")

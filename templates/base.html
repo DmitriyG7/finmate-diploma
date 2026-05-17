@@ -28,6 +28,7 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <!-- Локализация на русский -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 
     <style>
         body {
@@ -114,6 +115,10 @@
                         <li class="nav-item px-2">
                             <a class="nav-link {% if request.resolver_match.url_name == 'analytics' %}active{% endif %}"
                                href="{% url 'analytics' %}">Аналитика</a>
+                        </li>
+                        <li class="nav-item px-2">
+                            <a class="nav-link {% if request.resolver_match.namespace == 'advisor' %}active{% endif %}"
+                               href="{% url 'advisor:goal_list' %}">Советчик</a>
                         </li>
 
                         <!-- Разделитель для мобилок -->

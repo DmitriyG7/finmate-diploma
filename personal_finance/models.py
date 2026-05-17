@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.conf import settings
 from django.db import models
 from users.models import Currency
+from django.urls import reverse
 
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
@@ -102,6 +103,21 @@ class Wallet(TimeStampedModel):
     def __str__(self):
         return f"{self.name} ({self.balance} {self.currency})"
 
+    @classmethod
+    def accessible_for_user(cls, user):
+        if not user or not user.is_authenticated:
+            return cls.objects.none()
+        return cls.objects.filter(
+            Q(user=user) | Q(memberships__user=user, memberships__status=WalletMember.MemberStatus.ACTIVE),
+            is_active=True,
+        ).distinct()
+
+    def is_owner(self, user):
+        return self.user_id == getattr(user, "id", None)
+
+    def is_shared(self):
+        return self.memberships.filter(status=WalletMember.MemberStatus.ACTIVE).exists()
+
 
 class PersonalTransaction(TimeStampedModel):
     total = models.DecimalField(max_digits=12, decimal_places=2, null=False,
@@ -116,6 +132,14 @@ class PersonalTransaction(TimeStampedModel):
                                       choices=OperationType.choices)
     wallet = models.ForeignKey('Wallet', on_delete=models.PROTECT, null=False, blank=False,
                                verbose_name="Счет", related_name="transactions")
+    performed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="performed_transactions",
+        verbose_name="Кем выполнено",
+    )
 
     def __str__(self):
         category_name = self.category.name if self.category else "Без категории"
@@ -146,3 +170,60 @@ class WalletTransfer(TimeStampedModel):
 
     def __str__(self):
         return f"Перевод {self.amount} из {self.from_wallet.name} в {self.to_wallet.name}"
+
+
+class WalletMember(TimeStampedModel):
+    class RoleType(models.TextChoices):
+        OWNER = "owner", "Владелец"
+        MEMBER = "member", "Участник"
+
+    class MemberStatus(models.TextChoices):
+        ACTIVE = "active", "Активен"
+        REVOKED = "revoked", "Отключен"
+
+    wallet = models.ForeignKey("Wallet", on_delete=models.CASCADE, related_name="memberships")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wallet_memberships")
+    role = models.CharField(max_length=10, choices=RoleType.choices, default=RoleType.MEMBER)
+    status = models.CharField(max_length=10, choices=MemberStatus.choices, default=MemberStatus.ACTIVE, db_index=True)
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="wallet_member_invites_created",
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["wallet", "user"], name="uniq_wallet_member_wallet_user"),
+        ]
+
+
+class WalletShareInvite(TimeStampedModel):
+    class InviteStatus(models.TextChoices):
+        PENDING = "pending", "Ожидает решения"
+        ACCEPTED = "accepted", "Принято"
+        DECLINED = "declined", "Отклонено"
+        CANCELLED = "cancelled", "Отменено"
+
+    wallet = models.ForeignKey("Wallet", on_delete=models.CASCADE, related_name="share_invites")
+    from_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wallet_share_sent")
+    to_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wallet_share_received")
+    status = models.CharField(max_length=10, choices=InviteStatus.choices, default=InviteStatus.PENDING, db_index=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["wallet", "to_user"],
+                condition=models.Q(status="pending"),
+                name="uniq_pending_wallet_invite",
+            )
+        ]
+
+    @property
+    def title(self):
+        return f"Приглашение в счет «{self.wallet.name}»"
+
+    def get_absolute_url(self):
+        return reverse("wallet_list")

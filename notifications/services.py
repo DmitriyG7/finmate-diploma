@@ -5,8 +5,8 @@ from notifications.models import Notification
 
 class NotificationsService:
     @staticmethod
-    def create_notification(*, actor, recipient, verb, content_obj):
-        if actor == recipient:
+    def create_notification(*, actor, recipient, verb, content_obj, allow_self=False):
+        if actor == recipient and not allow_self:
             return None
 
         note = Notification.objects.create(
