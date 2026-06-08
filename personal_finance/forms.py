@@ -73,7 +73,7 @@ TYPE_CHOICES = [
 
 
 class TransactionUserForm(FinanceFormMixin, forms.Form):
-    period = forms.ChoiceField(choices=PERIOD_CHOICES, required=False, initial='week', label="Период")
+    period = forms.ChoiceField(choices=PERIOD_CHOICES, required=False, initial='month', label="Период")
     operation_type = forms.ChoiceField(choices=TYPE_CHOICES, required=False, initial="", label="Тип транзакции")
     date_from = forms.DateField(label="Выберите начало", required=False, input_formats=["%d.%m.%Y"])
     date_to = forms.DateField(label="Выберите конец", required=False, input_formats=["%d.%m.%Y"])
@@ -94,7 +94,6 @@ class TransactionUserForm(FinanceFormMixin, forms.Form):
 
     def clean(self):
         cd = super().clean()
-        print(cd)
         period = cd.get('period')
         date_from = cd.get('date_from')
         date_to = cd.get('date_to')
@@ -129,7 +128,6 @@ class AddTransactionForm(FinanceFormMixin, forms.ModelForm):
         self.apply_finance_styles()
 
         if self.instance and self.instance.pk and self.instance.date:
-            # Превращаем дату из базы (2026-02-20) в строку (20.02.2026)
             self.initial['date'] = self.instance.date.strftime('%d.%m.%Y')
 
         if user and user.is_authenticated:
@@ -180,6 +178,8 @@ class AddTransactionForm(FinanceFormMixin, forms.ModelForm):
             self.add_error('category', "Тип категории не совпадает с типом операции.")
 
         if self.instance and self.instance.pk:
+            # Проверяем, была ли у этой транзакции категория "Накопления" до изменения
+            # (или проверяем прилетевшую категорию)
             if self.instance.category and self.instance.category.name == "Накопления":
                 raise ValidationError(
                     "Эта транзакция создана автоматически финансовым советником. "
@@ -195,12 +195,8 @@ class UpdateTransactionForm(AddTransactionForm):
 
 
 class GraphicForm(TransactionUserForm):
-    def __init__(self, *args, user=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['operation_type'].choices = OperationType.choices
-        self.fields['operation_type'].initial = 'expense'
-        self.fields['category'].queryset = Category.objects.for_user(user=user)
-        self.apply_finance_styles()
+    operation_type = forms.ChoiceField(choices=((OperationType.EXPENSE.value, "Расход"), (OperationType.INCOME.value, "Доход")
+                                                    ),required=False, initial="", label="Тип транзакции")
 
 
 class CreateWalletForm(FinanceFormMixin, forms.ModelForm):

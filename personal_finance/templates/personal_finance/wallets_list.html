@@ -2,107 +2,148 @@
 {% load static %}
 
 {% block content %}
-<div class="container mt-4">
-    <!-- Заголовок и кнопка создания -->
-    <div class="container mt-4">
-    <!-- Заголовок и кнопки управления -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<div class="container py-4 fintech-theme">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-4 mb-5 animate-fade-in-up" style="animation-delay: 0.1s;">
         <div>
-            <h2 class="mb-0">Мои счета</h2>
-            <p class="text-muted">Общий баланс по всем счетам:
-                <span class="fw-bold text-dark">{{ total_sum|floatformat:2 }} ₽</span>
+            <h2 class="text-dark fw-bold mb-1 tracking-tight d-flex align-items-center gap-2">
+                <i class="fas fa-wallet text-primary opacity-75 fs-3"></i>Мои счета
+            </h2>
+            <p class="text-muted small mb-0 fs-14">Общий баланс по всем счетам:
+                <span class="fw-bold text-dark tracking-tight ms-1">{{ total_sum|floatformat:2 }} ₽</span>
             </p>
         </div>
-        <div class="d-flex gap-2">
-            <!-- Кнопка перевода -->
-            <a href="{% url 'wallet_transfer' %}" class="btn btn-outline-primary shadow-sm">
+        <div class="d-flex gap-2 w-200 w-md-auto">
+            <a href="{% url 'wallet_transfer' %}" class="btn btn-fintech-outline px-3 py-2.5 rounded-pill fw-semibold fs-13 transition-all text-nowrap text-center flex-grow-1 flex-md-grow-0 shadow-sm">
                 <i class="fas fa-exchange-alt me-2"></i>Перевод
             </a>
-            <!-- Кнопка создания -->
-            <a href="{% url 'add_wallet' %}" class="btn btn-primary shadow-sm">
+            <a href="{% url 'add_wallet' %}" class="btn btn-fintech-primary text-white px-4 py-2.5 rounded-pill shadow-lg fw-semibold fs-13 transition-all text-nowrap text-center flex-grow-1 flex-md-grow-0">
                 <i class="fas fa-plus me-2"></i>Новый счет
             </a>
         </div>
     </div>
 
-    <!-- Список кошельков (Сетка) -->
-    <div class="row g-4">
+    <div class="row g-4 animate-fade-in-up" style="animation-delay: 0.2s;">
         {% for wallet in wallets %}
             <div class="col-md-6 col-lg-4">
-                <div class="card h-100 shadow-sm border-0 hover-shadow transition-all">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <div class="d-flex align-items-center">
-                                <!-- Иконка в зависимости от типа (пример логики) -->
-                                <div class="bg-light p-3 rounded-3 me-3">
-                                    {% if wallet.wallet_type == 'debet' %}
-                                        <i class="fas fa-credit-card text-primary fs-4" title="Дебетовая"></i>
-                                    {% elif wallet.wallet_type == 'credit' %}
-                                        <i class="fas fa-hand-holding-usd text-danger fs-4" title="Кредитная"></i>
-                                    {% elif wallet.wallet_type == 'crypto' %}
-                                        <i class="fab fa-bitcoin text-warning fs-4" title="Крипто"></i>
-                                    {% elif wallet.wallet_type == 'saving' %}
-                                        <i class="fas fa-piggy-bank text-success fs-4" title="Накопительный"></i>
-                                    {% else %}
-                                        <i class="fas fa-wallet text-secondary fs-4"></i>
-                                    {% endif %}
+                <div class="card h-100 shadow-fintech border-0 hover-scale transition-all position-relative overflow-hidden bg-white" style="border-radius: 20px;">
+
+                    <div class="card-bg-decoration"></div>
+
+                    <div class="card-body p-4 position-relative z-index-1 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-start mb-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="wallet-icon-box d-flex align-items-center justify-content-center"
+                                         style="{% if wallet.wallet_type == 'debet' %} background: rgba(79, 70, 229, 0.08); color: #4f46e5;
+                                                {% elif wallet.wallet_type == 'credit' %} background: rgba(239, 68, 68, 0.08); color: #ef4444;
+                                                {% elif wallet.wallet_type == 'crypto' %} background: rgba(245, 158, 11, 0.08); color: #f59e0b;
+                                                {% elif wallet.wallet_type == 'saving' %} background: rgba(16, 185, 129, 0.08); color: #10b981;
+                                                {% else %} background: rgba(148, 163, 184, 0.08); color: #94a3b8; {% endif %}">
+
+                                        {% if wallet.wallet_type == 'debet' %}
+                                            <i class="fas fa-credit-card fs-5" title="Дебетовая"></i>
+                                        {% elif wallet.wallet_type == 'credit' %}
+                                            <i class="fas fa-hand-holding-usd fs-5" title="Кредитная"></i>
+                                        {% elif wallet.wallet_type == 'crypto' %}
+                                            <i class="fab fa-bitcoin fs-5" title="Крипто"></i>
+                                        {% elif wallet.wallet_type == 'saving' %}
+                                            <i class="fas fa-piggy-bank fs-5" title="Накопительный"></i>
+                                        {% else %}
+                                            <i class="fas fa-wallet fs-5"></i>
+                                        {% endif %}
+                                    </div>
+
                                     {% if wallet.is_default %}
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle ms-2">Основной</span>
-                                    {% endif %}
-                                    {% if wallet.user_id != user.id %}
-                                        <span class="badge bg-info-subtle text-info border border-info-subtle ms-2">Совместный</span>
+                                        <span class="badge rounded-pill px-2.5 py-1.5 fs-11 fw-bold bg-success-subtle text-success border border-success-subtle-custom ms-2 text-uppercase tracking-wider">Основной</span>
                                     {% endif %}
                                 </div>
-                            </div>
-                            
-                            <!-- Выпадающее меню действий -->
-                            <div class="dropdown">
-                                <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-ellipsis-v"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                    <!-- Кнопка Редактировать -->
-                                    <li>
-                                        <a class="dropdown-item" href="{% url 'update_wallet' wallet.pk %}">
-                                            <i class="fas fa-edit me-2 text-primary"></i>Изменить
-                                        </a>
-                                    </li>
-                                    {% if wallet.user_id == user.id %}
-                                    <li>
-                                        <a class="dropdown-item" href="{% url 'share_wallet' wallet.pk %}">
-                                            <i class="fas fa-user-plus me-2 text-success"></i>Поделиться счетом
-                                        </a>
-                                    </li>
-                                    {% endif %}
-                                    <li><hr class="dropdown-divider"></li>
-                                    <!-- Кнопка Удалить (через форму) -->
-                                    {% if wallet.user_id == user.id %}
-                                    <li>
-                                        <form action="{% url 'delete_wallet' wallet.pk %}" method="post"
-                                              onsubmit="return confirm('Вы уверены, что хотите удалить кошелек? Все данные будут скрыты.');">
-                                            {% csrf_token %}
-                                            <button type="submit" class="dropdown-item text-danger">
-                                                <i class="fas fa-trash-alt me-2"></i>Удалить
-                                            </button>
-                                        </form>
-                                    </li>
-                                    {% endif %}
-                                </ul>
-                            </div>
-                        </div>
 
-                        <div class="mt-4">
-                            <h5 class="card-title fw-bold mb-1 text-truncate" title="{{ wallet.name }}">
+                                <div class="dropdown">
+                                    <button class="btn btn-link text-muted-light p-2 transition-all rounded-circle hover-bg-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-ellipsis-v fs-14"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-fintech border-0 p-2 m-0" style="border-radius: 14px; min-width: 180px;">
+                                        <li>
+                                            <a class="dropdown-item fs-13 py-2 rounded-3 text-dark fw-medium" href="{% url 'update_wallet' wallet.pk %}">
+                                                <i class="fas fa-edit me-2 text-primary opacity-75"></i>Изменить
+                                            </a>
+                                        </li>
+                                        {% if wallet.user_id == user.id %}
+                                        <li>
+                                            <a class="dropdown-item fs-13 py-2 rounded-3 text-dark fw-medium" href="{% url 'share_wallet' wallet.pk %}">
+                                                <i class="fas fa-user-plus me-2 text-success opacity-75"></i>Поделиться
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        <li><hr class="dropdown-divider my-1 opacity-50"></li>
+                                        {% if wallet.user_id == user.id %}
+                                        <li>
+                                            <form action="{% url 'delete_wallet' wallet.pk %}" method="post"
+                                                  onsubmit="return confirm('Вы уверены, что хотите удалить кошелек? Все данные будут скрыты.');" class="m-0">
+                                                {% csrf_token %}
+                                                <button type="submit" class="dropdown-item text-danger fs-13 py-2 rounded-3 fw-medium">
+                                                    <i class="fas fa-trash-alt me-2 opacity-75"></i>Удалить
+                                                </button>
+                                            </form>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <h5 class="card-title fw-bold text-dark mb-1 text-truncate tracking-tight fs-18" title="{{ wallet.name }}">
                                 {{ wallet.name }}
                             </h5>
-                            <div class="text-muted small">Текущий баланс</div>
-                            <div class="fs-3 fw-bold {% if wallet.balance < 0 %}text-danger{% endif %}">
-                                {{ wallet.balance|floatformat:2 }} <span class="fs-5 fw-normal text-muted">{{ wallet.get_currency_display|default:wallet.currency }}</span>
+
+                            {% if wallet.user_id != user.id or wallet.memberships.exists %}
+                                <div class="d-flex align-items-center mb-3 mt-2">
+                                    <span class="text-muted-light fs-12 me-2">Совместно с:</span>
+                                    <div class="avatar-group d-flex align-items-center">
+                                        <div class="avatar-circle bg-primary text-white border border-2 border-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-11"
+                                             data-bs-toggle="tooltip" title="Владелец: {{ wallet.user.username }}">
+                                            {{ wallet.user.username|slice:":1"|upper }}
+                                        </div>
+
+                                        {% for member in wallet.memberships.all|slice:":3" %}
+                                            <div class="avatar-circle bg-success text-white border border-2 border-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-11 ms-n2"
+                                                 data-bs-toggle="tooltip" title="Участник: {{ member.user.username }}">
+                                                {{ member.user.username|slice:":1"|upper }}
+                                            </div>
+                                        {% endfor %}
+
+                                        {% if wallet.memberships.count > 3 %}
+                                            <div class="avatar-circle bg-light text-muted border border-2 border-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-11 ms-n2"
+                                                 data-bs-toggle="tooltip" title="И еще {{ wallet.memberships.count|add:"-3" }} участников">
+                                                +{{ wallet.memberships.count|add:"-3" }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mt-4 pt-2">
+                            <div class="text-muted-light fs-12 fw-medium">Текущий баланс</div>
+                            <div class="fs-2 fw-800 tracking-tight mt-0.5 {% if wallet.balance < 0 %}text-danger{% else %}text-dark{% endif %}">
+                                {{ wallet.balance|floatformat:2 }}
+                                <span class="fs-4 fw-normal text-muted-light ms-1">
+                                    {% with curr=wallet.currency|upper %}
+                                        {% if curr == 'RUB' or curr == 'RUBLES' or curr == 'Р' or wallet.get_currency_display == 'Рубль' %}₽
+                                        {% elif curr == 'USD' or curr == 'DOLLAR' or curr == '$' %}$
+                                        {% elif curr == 'EUR' or curr == 'EURO' or curr == '€' %}€
+                                        {% else %}{{ wallet.get_currency_display|default:wallet.currency }}{% endif %}
+                                    {% endwith %}
+                                </span>
                             </div>
                         </div>
                     </div>
-                    <div class="card-footer bg-transparent border-0 pb-3">
-                        <a href="{% url 'home' %}?wallet={{ wallet.id }}" class="btn btn-outline-secondary btn-sm w-100">
+
+                    <div class="card-footer bg-transparent border-0 px-4 pb-4 pt-0 position-relative z-index-1">
+                        <a href="{% url 'home' %}?wallet={{ wallet.id }}" class="btn btn-fintech-light btn-sm w-100 py-2 fs-13 fw-semibold text-primary transition-all rounded-3">
                             История операций
                         </a>
                     </div>
@@ -110,47 +151,62 @@
             </div>
         {% empty %}
             <div class="col-12">
-                <div class="card border-dashed py-5 text-center">
+                <div class="card border-dashed py-5 text-center shadow-fintech bg-white" style="border-radius: 20px;">
                     <div class="card-body">
-                        <i class="fas fa-piggy-bank fa-3x text-muted mb-3"></i>
-                        <p class="lead text-muted">У вас пока нет ни одного кошелька</p>
-                        <a href="{% url 'add_wallet' %}" class="btn btn-primary">Создать первый счет</a>
+                        <div class="icon-glow-muted mx-auto mb-3">
+                            <i class="fas fa-piggy-bank fa-2x text-muted-light"></i>
+                        </div>
+                        <p class="lead text-secondary fs-16 fw-semibold mb-3">У вас пока нет ни одного активного счета</p>
+                        <a href="{% url 'add_wallet' %}" class="btn btn-fintech-primary text-white shadow-lg px-4 py-2.5 rounded-pill fw-semibold fs-14">
+                            Создать первый счет
+                        </a>
                     </div>
                 </div>
             </div>
         {% endfor %}
     </div>
 
-    <!-- Пагинация -->
     {% if is_paginated %}
-    <nav class="mt-5">
-        <ul class="pagination justify-content-center">
+    <nav class="mt-5 d-flex justify-content-center">
+        <ul class="pagination pagination-fintech shadow-fintech rounded-pill bg-white p-1 border-0 d-inline-flex m-0">
             {% if page_obj.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
-                        <span aria-hidden="true">&laquo;</span>
+                    <a class="page-link rounded-circle border-0 text-dark d-flex align-items-center justify-content-center" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                        <i class="fas fa-chevron-left fs-12"></i>
                     </a>
                 </li>
             {% else %}
-                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                <li class="page-item disabled">
+                    <span class="page-link rounded-circle border-0 text-muted-light d-flex align-items-center justify-content-center">
+                        <i class="fas fa-chevron-left fs-12"></i>
+                    </span>
+                </li>
             {% endif %}
 
             {% for num in page_obj.paginator.page_range %}
                 {% if page_obj.number == num %}
-                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    <li class="page-item active">
+                        <span class="page-link rounded-circle border-0 bg-primary text-white fw-bold d-flex align-items-center justify-content-center">{{ num }}</span>
+                    </li>
                 {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                    <li class="page-item">
+                        <a class="page-link rounded-circle border-0 text-dark d-flex align-items-center justify-content-center" href="?page={{ num }}">{{ num }}</a>
+                    </li>
                 {% endif %}
             {% endfor %}
 
             {% if page_obj.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
-                        <span aria-hidden="true">&raquo;</span>
+                    <a class="page-link rounded-circle border-0 text-dark d-flex align-items-center justify-content-center" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                        <i class="fas fa-chevron-right fs-12"></i>
                     </a>
                 </li>
             {% else %}
-                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                <li class="page-item disabled">
+                    <span class="page-link rounded-circle border-0 text-muted-light d-flex align-items-center justify-content-center">
+                        <i class="fas fa-chevron-right fs-12"></i>
+                    </span>
+                </li>
             {% endif %}
         </ul>
     </nav>
@@ -161,20 +217,130 @@
 {% block extra_css %}
 {{ block.super }}
 <style>
-    .hover-shadow:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    /* Глобальные стили для финтех-модулей */
+    .fintech-theme {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    .transition-all {
-        transition: all 0.3s ease;
+
+    /* Утилитарные классы размеров и весов */
+    .fs-11 { font-size: 11px; }
+    .fs-12 { font-size: 12px; }
+    .fs-13 { font-size: 13px; }
+    .fs-14 { font-size: 14px; }
+    .fs-16 { font-size: 1rem; }
+    .fs-18 { font-size: 1.125rem; }
+    .fw-500 { font-weight: 500; }
+    .fw-800 { font-weight: 800; }
+    .tracking-tight { letter-spacing: -0.025em; }
+    .tracking-wider { letter-spacing: 0.04em; }
+    .text-muted-light { color: #94a3b8; }
+
+    .bg-success-subtle { background-color: rgba(16, 185, 129, 0.08) !important; }
+    .border-success-subtle-custom { border: 1px solid rgba(16, 185, 129, 0.2) !important; }
+    .shadow-fintech { box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04) !important; }
+    .transition-all { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .z-index-1 { z-index: 1; }
+
+    /* Динамическая обертка контейнера иконки кошелька */
+    .wallet-icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px !important;
+        flex-shrink: 0;
     }
+
+    /* Интерактивный премиум-эффект ховера на карточки */
+    .hover-scale {
+        border: 1px solid #f1f5f9 !important;
+    }
+    .hover-scale:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06) !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    /* Стили кнопок */
+    .btn-fintech-primary {
+        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+        border: none;
+    }
+    .btn-fintech-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25);
+    }
+    .btn-fintech-outline {
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        background: #ffffff;
+    }
+    .btn-fintech-outline:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        color: #1e293b;
+    }
+    .btn-fintech-light {
+        background-color: #f8fafc;
+        border: 1px solid #f1f5f9;
+    }
+    .btn-fintech-light:hover {
+        background-color: rgba(79, 70, 229, 0.05);
+        border-color: rgba(79, 70, 229, 0.12);
+        color: #4338ca !important;
+    }
+
+    /* Аватар-группы совместных кошельков */
+    .avatar-group .avatar-circle {
+        width: 28px;
+        height: 28px;
+        z-index: 1;
+        transition: transform 0.2s;
+    }
+    .avatar-group .avatar-circle:hover {
+        transform: translateY(-2px);
+        z-index: 5;
+    }
+
+    /* Декоративные фоновые элементы карт */
+    .card-bg-decoration {
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 120px;
+        height: 120px;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.03) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+        z-index: 0;
+    }
+
+    /* Оформление пустых кошельков */
     .border-dashed {
-        border: 2px dashed #dee2e6;
-        background-color: #f8f9fa;
+        border: 2px dashed #cbd5e1 !important;
     }
-    /* Стили для основных цветов под Bootstrap 5 */
-    .bg-primary-subtle {
-        background-color: #e7f1ff;
+    .icon-glow-muted {
+        width: 56px; height: 56px; border-radius: 16px;
+        background: #f8fafc; display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Пагинация */
+    .pagination-fintech .page-link {
+        width: 36px; height: 36px; padding: 0;
+        margin: 0 2px; color: #475569;
+    }
+    .pagination-fintech .page-item.active .page-link {
+        background: #4f46e5 !important;
+    }
+    .hover-bg-light:hover {
+        background-color: #f1f5f9;
+    }
+
+    /* Плавная анимация загрузки */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up {
+        opacity: 0;
+        animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 </style>
 {% endblock %}

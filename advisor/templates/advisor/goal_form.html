@@ -1,38 +1,182 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<div class="container py-5 fintech-theme animate-fade-in-up">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light fw-semibold">
-                    {% if object %}Редактирование цели{% else %}Новая цель накопления{% endif %}
-                </div>
-                <div class="card-body">
-                    <form method="post">
+        <div class="col-lg-7">
+            <div class="card shadow-fintech border-0 position-relative overflow-hidden bg-white" style="border-radius: 24px;">
+
+                <div class="card-bg-decoration"></div>
+
+                <div class="card-body p-4 p-sm-5 position-relative z-index-1">
+
+                    <div class="mb-4 pb-2">
+                        <h3 class="text-dark fw-bold mb-1 tracking-tight d-flex align-items-center gap-2">
+                            {% if object %}
+                                <i class="fas fa-edit text-primary opacity-75 fs-4"></i>Редактирование цели
+                            {% else %}
+                                <i class="fas fa-bullseye text-primary opacity-75 fs-4"></i>Новая цель накопления
+                            {% endif %}
+                        </h3>
+                        <p class="text-muted-light small mb-0 fs-14">Задайте параметры вашей финансовой цели для умного анализа</p>
+                    </div>
+
+                    <form method="post" novalidate class="m-0">
                         {% csrf_token %}
+
                         {% if form.non_field_errors %}
-                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                            <div class="alert alert-danger-custom d-flex align-items-start gap-2 mb-4" style="border-radius: 12px;">
+                                <i class="fas fa-exclamation-circle mt-1"></i>
+                                <div class="fs-14 fw-medium">{{ form.non_field_errors }}</div>
+                            </div>
                         {% endif %}
 
                         {% for field in form %}
-                            <div class="mb-3">
-                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                                {{ field }}
+                            <div class="mb-4 position-relative">
+                                <label for="{{ field.id_for_label }}" class="form-label fw-semibold text-dark fs-13 mb-1.5 opacity-85">
+                                    {{ field.label }}
+                                </label>
+
+                                <div class="fintech-input-wrapper">
+                                    {{ field }}
+                                </div>
+
                                 {% if field.errors %}
-                                    <div class="text-danger small mt-1">{{ field.errors }}</div>
+                                    <div class="text-danger small mt-1.5 d-flex align-items-center gap-1 fw-medium fs-12">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        {{ field.errors.as_text|cut:"* " }}
+                                    </div>
                                 {% endif %}
                             </div>
                         {% endfor %}
 
-                        <div class="d-flex justify-content-end gap-2">
-                            <a href="{% url 'advisor:goal_list' %}" class="btn btn-outline-secondary">Отмена</a>
-                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                        <div class="d-flex justify-content-end gap-2 mt-5 pt-2 border-top border-light">
+                            <a href="{% url 'advisor:goal_list' %}" class="btn btn-fintech-outline px-4 py-2.5 rounded-pill fw-semibold fs-13 transition-all">
+                                Отмена
+                            </a>
+                            <button type="submit" class="btn btn-fintech-primary text-white px-4 py-2.5 rounded-pill shadow-lg fw-semibold fs-13 transition-all">
+                                <i class="fas fa-check me-1.5"></i>Сохранить цели
+                            </button>
                         </div>
                     </form>
+
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* Глобальные стили формы */
+    .fintech-theme {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    /* Сетка и шрифты */
+    .fs-12 { font-size: 12px; }
+    .fs-13 { font-size: 13px; }
+    .fs-14 { font-size: 14px; }
+    .fw-semibold { font-weight: 600; }
+    .tracking-tight { letter-spacing: -0.025em; }
+    .text-muted-light { color: #94a3b8; }
+    .gap-2 { gap: 0.5rem; }
+    .z-index-1 { z-index: 1; }
+
+    /* Стилизация карточки */
+    .shadow-fintech {
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.04) !important;
+        border: 1px solid #f1f5f9 !important;
+    }
+
+    /* Красивый авто-рендеринг полей Django */
+    .fintech-input-wrapper input,
+    .fintech-input-wrapper select,
+    .fintech-input-wrapper textarea {
+        display: block;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.5;
+        color: #1e293b;
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Фокус на инпутах */
+    .fintech-input-wrapper input:focus,
+    .fintech-input-wrapper select:focus,
+    .fintech-input-wrapper textarea:focus {
+        color: #0f172a;
+        background-color: #ffffff;
+        border-color: #4f46e5;
+        outline: 0;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    }
+
+    /* Чекбоксы (если есть в форме) */
+    .fintech-input-wrapper input[type="checkbox"] {
+        display: inline-block;
+        width: auto;
+        margin-right: 8px;
+        transform: scale(1.1);
+    }
+
+    /* Кастомные кнопки */
+    .btn-fintech-primary {
+        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+        border: none;
+    }
+    .btn-fintech-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25);
+    }
+    .btn-fintech-outline {
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        background: #ffffff;
+    }
+    .btn-fintech-outline:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        color: #1e293b;
+    }
+
+    /* Кастомные алерты для ошибок бэкенда */
+    .alert-danger-custom {
+        background-color: rgba(239, 68, 68, 0.06);
+        border: 1px solid rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+
+    /* Декоративный фоновый элемент */
+    .card-bg-decoration {
+        position: absolute;
+        top: -60px;
+        right: -60px;
+        width: 160px;
+        height: 160px;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.04) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+        z-index: 0;
+    }
+
+    /* Анимация плавного появления формы */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up {
+        animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+</style>
 {% endblock %}

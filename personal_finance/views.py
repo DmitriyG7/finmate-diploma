@@ -30,43 +30,56 @@ from notifications.services import NotificationsService
 @login_required
 def transaction_list(request):
     relevant_post = None
+    today = timezone.now().date()
 
-    form = TransactionUserForm(data=request.GET or None, user=request.user)
+    filter_params = request.GET.copy()
+    if 'period' not in filter_params:
+        filter_params['period'] = 'month'
 
+    if 'wallet' not in filter_params:
+        default_wallet = Wallet.objects.filter(user=request.user, is_default=True, is_active=True).first()
+        if default_wallet:
+            filter_params['wallet'] = default_wallet.id
+
+    form = TransactionUserForm(data=filter_params, user=request.user)
     accessible_wallets = Wallet.accessible_for_user(request.user)
-    queryset = PersonalTransaction.objects.filter(wallet__in=accessible_wallets)\
+
+    queryset = PersonalTransaction.objects.filter(wallet__in=accessible_wallets) \
         .select_related("category", "wallet", "performed_by").order_by("-date", "-id")
 
-    selected_wallet = None
+    totals_queryset = PersonalTransaction.objects.filter(wallet__in=accessible_wallets)
+
     if form.is_valid():
         cd = form.cleaned_data
-        selected_wallet = cd.get("wallet")
-        today = timezone.now().date()
 
-        # Обработка периода
         if cd["period"] == "today":
             queryset = queryset.filter(date=today)
+            totals_queryset = totals_queryset.filter(date=today)
 
         elif cd["period"] == "week":
             week_ago = today - timedelta(days=7)
             queryset = queryset.filter(date__gte=week_ago, date__lte=today)
+            totals_queryset = totals_queryset.filter(date__gte=week_ago, date__lte=today)
 
         elif cd["period"] == "month":
-            start_date = today.replace(day=1) # 1-е число текущего месяца
+            start_date = today.replace(day=1)
             queryset = queryset.filter(date__gte=start_date, date__lte=today)
+            totals_queryset = totals_queryset.filter(date__gte=start_date, date__lte=today)
 
         elif cd["period"] == "last_month":
             first_day_this_month = today.replace(day=1)
             last_day_last_month = first_day_this_month - timedelta(days=1)
             start_date = last_day_last_month.replace(day=1)
             queryset = queryset.filter(date__gte=start_date, date__lte=last_day_last_month)
+            totals_queryset = totals_queryset.filter(date__gte=start_date, date__lte=last_day_last_month)
 
-        elif cd["period"] == "custom":
-            if cd.get("date_from") and cd.get("date_to"):
-                queryset = queryset.filter(
-                    date__gte=cd["date_from"],
-                    date__lte=cd["date_to"]
-                )
+        elif cd["period"] == "custom" and cd.get("date_from") and cd.get("date_to"):
+            queryset = queryset.filter(date__gte=cd["date_from"], date__lte=cd["date_to"])
+            totals_queryset = totals_queryset.filter(date__gte=cd["date_from"], date__lte=cd["date_to"])
+
+        if cd.get("wallet"):
+            queryset = queryset.filter(wallet=cd["wallet"])
+            totals_queryset = totals_queryset.filter(wallet=cd["wallet"])
 
         if cd["operation_type"]:
             queryset = queryset.filter(operation_type=cd["operation_type"])
@@ -74,32 +87,15 @@ def transaction_list(request):
         categories = cd.get("category")
         if categories:
             queryset = queryset.filter(category__in=categories)
-            first_category = categories[0]
-
-            relevant_post = Post.objects.verified().filter(
-                linked_category=first_category
-            ).first()
-
-        if cd.get("wallet"):
-            queryset = queryset.filter(wallet=cd["wallet"])
-
-    if 'wallet' not in request.GET:
-        default_wallet = Wallet.objects.filter(user=request.user, is_default=True, is_active=True).first()
-        if default_wallet:
-            queryset = queryset.filter(wallet=default_wallet)
-            form.initial['wallet'] = default_wallet.id
-        elif selected_wallet:
-            queryset = queryset.filter(wallet=selected_wallet)
+            relevant_post = Post.objects.verified().filter(linked_category=categories[0]).first()
 
     paginator = Paginator(queryset, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     daily_map = {}
-
     for transaction in page_obj:
         tx_date = transaction.date
-
         if tx_date not in daily_map:
             daily_map[tx_date] = {
                 "date": tx_date,
@@ -107,20 +103,17 @@ def transaction_list(request):
                 "expense": Decimal("0.00"),
                 "transactions": []
             }
-
         day_data = daily_map[tx_date]
-
         day_data["transactions"].append(transaction)
 
         if transaction.operation_type == OperationType.INCOME:
             day_data["income"] += transaction.total
-
         elif transaction.operation_type == OperationType.EXPENSE:
             day_data["expense"] += transaction.total
 
     grouped_transactions = list(daily_map.values())
 
-    totals = queryset.aggregate(
+    totals = totals_queryset.aggregate(
         total_income=Sum('total', filter=Q(operation_type=OperationType.INCOME)),
         total_expense=Sum('total', filter=Q(operation_type=OperationType.EXPENSE))
     )
@@ -140,7 +133,7 @@ def transaction_list(request):
         "transactions_grouped": grouped_transactions,
         "user_wallets": accessible_wallets,
 
-        # Дашборд
+        # Дашборд теперь всегда показывает корректные данные за весь период
         "total_balance": total_balance,
         "period_income": period_income,
         "period_expense": period_expense,
@@ -257,9 +250,24 @@ class DeleteTransaction(LoginRequiredMixin, DeleteView):
 
 @login_required
 def analytics_view(request):
-    form = GraphicForm(user=request.user, data=request.GET or None)
-    queryset = (PersonalTransaction.objects.filter(user=request.user)
-                .select_related("category").order_by("-date", "-id"))
+    filter_params = request.GET.copy()
+
+    if 'period' not in filter_params:
+        filter_params['period'] = 'month'
+
+    if 'operation_type' not in filter_params:
+        filter_params['operation_type'] = 'expense'
+
+    if 'wallet' not in filter_params:
+        default_wallet = Wallet.objects.filter(user=request.user, is_active=True, is_default=True).first()
+        if default_wallet:
+            filter_params['wallet'] = default_wallet.id
+
+    form = GraphicForm(user=request.user, data=filter_params)
+
+    accessible_wallets = Wallet.accessible_for_user(request.user)
+    queryset = (PersonalTransaction.objects.filter(wallet__in=accessible_wallets)
+                .select_related("category", "wallet").order_by("-date", "-id"))
     chart_data = []
     selected_categories_ids = []
 
@@ -267,7 +275,7 @@ def analytics_view(request):
         'total_sum': 0,
         'total_count': 0,
         'avg_check': 0,
-        'top_category': 0
+        'top_category': None
     }
 
     if form.is_valid():
@@ -280,21 +288,22 @@ def analytics_view(request):
             week_ago = today - timedelta(days=7)
             queryset = queryset.filter(date__gte=week_ago, date__lte=today)
         elif cd["period"] == "month":
-            month_ago = today - timedelta(days=30)
-            queryset = queryset.filter(date__gte=month_ago, date__lte=today)
+            queryset = queryset.filter(date__gte=today.replace(day=1), date__lte=today)
         elif cd["period"] == "custom":
             queryset = queryset.filter(
                 date__gte=cd["date_from"],
                 date__lte=cd["date_to"]
             )
 
+        if cd.get("wallet"):
+            queryset = queryset.filter(wallet=cd["wallet"])
+
         if cd["operation_type"]:
             queryset = queryset.filter(operation_type=cd["operation_type"])
 
-        active_categories = list(cd.get("category", []))
-        selected_categories_ids = [cat.id for cat in active_categories]
-
-        if selected_categories_ids:
+        active_categories = cd.get("category", [])
+        if active_categories:
+            selected_categories_ids = [cat.id for cat in active_categories]
             queryset = queryset.filter(category__in=selected_categories_ids)
 
         stats = queryset.aggregate(
@@ -307,14 +316,14 @@ def analytics_view(request):
         metrics['total_count'] = stats['total_count'] or 0
         metrics['avg_check'] = stats['avg_check'] or 0
 
-        aggregation_data = (
+        aggregation_data = list(
             queryset
             .values("category__name")
             .annotate(total=Sum("total"))
             .order_by("-total")
         )
 
-        if aggregation_data.exists():
+        if aggregation_data:
             metrics['top_category'] = aggregation_data[0]
 
         chart_data = [
@@ -428,6 +437,8 @@ class UserWalletsList(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         qs = (Wallet.accessible_for_user(self.request.user)
+        .select_related('user')
+        .prefetch_related('memberships__user')
         .order_by('-is_default', 'name'))
         return qs
 
@@ -483,7 +494,7 @@ class WalletShareInviteCreateView(LoginRequiredMixin, FormView):
         NotificationsService.create_notification(
             actor=self.request.user,
             recipient=target_user,
-            verb=f"приглашает вас разделить счет '{self.wallet.name}'",
+            verb=f"приглашает вас разделить счет «{self.wallet.name}»",
             content_obj=invite,
         )
         messages.success(self.request, "Приглашение отправлено.")

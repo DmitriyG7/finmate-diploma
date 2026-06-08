@@ -5,78 +5,122 @@
 {% block title %}Редактировать транзакцию{% endblock %}
 
 {% block content %}
-<div class="container my-5">
+<div class="container py-5 fintech-theme">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-sm p-4 rounded-3">
-                <h2 class="card-title text-center mb-4 fw-bold">Редактировать транзакцию</h2>
-                <form method="post" novalidate>
-                    {% csrf_token %}
+        <div class="col-lg-7 col-md-9 animate-fade-in-up">
 
-                    {% if form.errors %}
-                        <div class="alert alert-danger shadow-sm">
-                            <ul class="mb-0">
-                                {# Сначала выводим общие ошибки #}
-                                {% for error in form.non_field_errors %}
-                                    <li>{{ error }}</li>
-                                {% endfor %}
+            <div class="mb-4">
+                <a href="{% url 'home' %}" class="text-secondary text-decoration-none fw-medium fs-14 d-inline-flex align-items-center gap-2 transition-all back-link-hover">
+                    <i class="bi bi-arrow-left fs-16"></i> Вернуться к истории
+                </a>
+            </div>
 
-                                {# Затем пробегаем по всем полям и выводим их специфичные ошибки #}
-                                {% for field in form %}
-                                    {% if field.errors %}
-                                        {% for error in field.errors %}
-                                            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
-                                        {% endfor %}
-                                    {% endif %}
-                                {% endfor %}
-                            </ul>
+            <div class="card shadow-fintech border-0 rounded-4 overflow-hidden bg-white">
+                <div class="card-bg-decoration dec-form-1"></div>
+                <div class="card-bg-decoration dec-form-2"></div>
+
+                <div class="card-body p-4 p-md-5 position-relative z-index-1">
+
+                    <div class="text-center mb-5">
+                        <div class="icon-glow-primary mx-auto mb-3">
+                            <i class="bi bi-pencil-square text-primary fs-3"></i>
                         </div>
-                    {% endif %}
-                    <!-- Кошелек (Добавили блок) -->
-                    <div class="mb-3">
-                        <label for="{{ form.wallet.id_for_label }}" class="form-label fw-semibold">Счет</label>
-                        {{ form.wallet|add_class:"form-select" }}
-                        {% if form.wallet.errors %}
-                            <div class="text-danger small mt-1">{{ form.wallet.errors|first }}</div>
+                        <h3 class="text-dark fw-bold mb-1 tracking-tight">Редактирование операции</h3>
+                        <p class="text-muted small mb-0 fs-14">Внесите изменения в параметры выбранной транзакции</p>
+                    </div>
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.errors %}
+                            <div class="alert alert-danger shadow-sm border-0 rounded-3 fs-14 mb-4">
+                                <div class="d-flex align-items-center gap-2 mb-2 fw-bold">
+                                    <i class="bi bi-exclamation-octagon-fill fs-5"></i>
+                                    <span>Пожалуйста, исправьте ошибки в форме:</span>
+                                </div>
+                                <ul class="mb-0 ps-3">
+                                    {% for error in form.non_field_errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+
+                                    {% for field in form %}
+                                        {% if field.errors %}
+                                            {% for error in field.errors %}
+                                                <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
                         {% endif %}
-                    </div>
 
-                    <div class="row">
-                        <!-- Дата -->
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.date.id_for_label }}" class="form-label fw-semibold">Дата</label>
-                            {{ form.date|add_class:"form-control datepicker" }}
+                        <div class="mb-4">
+                            <label for="{{ form.wallet.id_for_label }}" class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">Выбрать счёт</label>
+                            <div class="input-group fintech-input-group {% if form.wallet.errors %}is-invalid-group{% endif %}">
+                                <span class="input-group-text bg-light-soft border-end-0 text-muted px-3"><i class="bi bi-credit-card-2-back-fill"></i></span>
+                                {{ form.wallet|add_class:"form-select form-select-fintech border-start-0 ps-2" }}
+                            </div>
+                            {% if form.wallet.errors %}
+                                <div class="text-danger small mt-1.5 fw-medium d-flex align-items-center gap-1">
+                                    <i class="bi bi-exclamation-circle-fill fs-12"></i> {{ form.wallet.errors|first }}
+                                </div>
+                            {% endif %}
                         </div>
-                        <!-- Сумма -->
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.total.id_for_label }}" class="form-label fw-semibold">Сумма</label>
-                            {{ form.total|add_class:"form-control" }}
+
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <label for="{{ form.date.id_for_label }}" class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">Дата операции</label>
+                                <div class="input-group fintech-input-group">
+                                    <span class="input-group-text bg-light-soft border-end-0 text-muted px-3"><i class="bi bi-calendar3"></i></span>
+                                    {{ form.date|add_class:"form-control form-control-fintech border-start-0 ps-2 datepicker" }}
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">Сумма</label>
+                                <div class="input-group fintech-input-group">
+                                    <span class="input-group-text bg-light-soft border-end-0 text-muted px-3 fw-bold fs-15">₽</span>
+                                    {{ form.total|add_class:"form-control form-control-fintech border-start-0 border-end-0 ps-2 fw-bold fs-16"|attr:"placeholder:0" }}
+                                    <span class="input-group-text bg-light-soft border-start-0 text-muted-light fs-12 px-3">RUB</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Тип операции -->
-                    <div class="mb-3">
-                        <label for="{{ form.operation_type.id_for_label }}" class="form-label fw-semibold">Тип операции</label>
-                        {{ form.operation_type|add_class:"form-select" }}
-                    </div>
+                        <div class="mb-4">
+                            <label for="{{ form.operation_type.id_for_label }}" class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">Тип операции</label>
+                            <div class="input-group fintech-input-group">
+                                <span class="input-group-text bg-light-soft border-end-0 text-muted px-3"><i class="bi bi-lightning-charge-fill"></i></span>
+                                {{ form.operation_type|add_class:"form-select form-select-fintech border-start-0 ps-2" }}
+                            </div>
+                        </div>
 
-                    <!-- Категория -->
-                    <div class="mb-3">
-                        <label for="{{ form.category.id_for_label }}" class="form-label fw-semibold">Категория</label>
-                        {{ form.category|add_class:"form-select" }}
-                    </div>
+                        <div class="mb-4" id="category-block">
+                            <label for="{{ form.category.id_for_label }}" class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">Категория</label>
+                            <div class="input-group fintech-input-group">
+                                <span class="input-group-text bg-light-soft border-end-0 text-muted px-3"><i class="bi bi-tags-fill"></i></span>
+                                {{ form.category|add_class:"form-select form-select-fintech border-start-0 ps-2" }}
+                            </div>
+                        </div>
 
-                    <!-- Описание -->
-                    <div class="mb-4">
-                        <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold">Описание</label>
-                        {{ form.description|add_class:"form-control"|attr:"rows:3" }}
-                    </div>
+                        <div class="mb-5">
+                            <label for="{{ form.description.id_for_label }}" class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">Описание / Комментарий</label>
+                            <div class="input-group fintech-input-group">
+                                <span class="input-group-text bg-light-soft border-end-0 text-muted px-3 align-items-start pt-2.5"><i class="bi bi-chat-left-text-fill"></i></span>
+                                {{ form.description|add_class:"form-control form-control-fintech border-start-0 ps-2"|attr:"rows:3"|attr:"placeholder:Добавьте детали операции..." }}
+                            </div>
+                        </div>
 
-                    <div class="text-center">
-                        <button type="submit" class="btn btn-primary btn-lg px-5 me-3">Сохранить</button>
-                        <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-lg px-5">Отмена</a>
-                    </div>
-                </form>
+                        <div class="d-flex flex-column gap-2">
+                            <button type="submit" class="btn btn-fintech-primary btn-lg py-3 rounded-3 shadow-lg fw-bold text-white transition-all fs-16">
+                                <i class="bi bi-check-circle-fill me-2 fs-15"></i> Сохранить изменения
+                            </button>
+                            <a href="{% url 'home' %}" class="btn btn-fintech-outline py-2.5 rounded-3 fw-semibold transition-all text-secondary text-center fs-14">
+                                Отмена
+                            </a>
+                        </div>
+
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -88,10 +132,11 @@
 document.addEventListener("DOMContentLoaded", function () {
     const typeSelect = document.querySelector('select[name="operation_type"]');
     const categorySelect = document.querySelector('select[name="category"]');
-    // Теперь это поле не будет пустым, так как мы передали user во вьюхе
+
     const categoryTypes = {{ form.category_types_map|default:"{}"|safe }};
 
     function filterCategories(isFirstLoad = false) {
+        if (!typeSelect || !categorySelect) return;
         const selectedType = typeSelect.value;
         const options = categorySelect.options;
 
@@ -106,7 +151,6 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
                 opt.style.display = "none";
                 opt.disabled = true;
-                // Сбрасываем только если пользователь сам меняет тип, а не при загрузке
                 if (!isFirstLoad && opt.selected) categorySelect.value = "";
             }
         }
@@ -114,7 +158,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (typeSelect && categorySelect) {
         typeSelect.addEventListener('change', () => filterCategories(false));
-        // Первый запуск — сохраняем текущий выбор из базы
         filterCategories(true);
     }
 });

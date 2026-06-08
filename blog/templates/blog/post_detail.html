@@ -2,140 +2,211 @@
 {% load blog_filters %}
 
 {% block content %}
-<div class="container mt-4">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'blog:post_list' %}">Блог</a></li>
-            <li class="breadcrumb-item active">{{ post.title }}</li>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<div class="container py-4 article-theme">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb separator-breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{% url 'blog:post_list' %}" class="text-decoration-none text-muted-link">Блог</a></li>
+            <li class="breadcrumb-item active text-dark fw-medium" aria-current="page">{{ post.title }}</li>
         </ol>
     </nav>
 
-{% if user.is_staff and post.status == 'checking' and not post.is_verified %}
-    <div class="alert alert-info d-flex justify-content-between align-items-center">
-        <div>
-            <strong>Модерация:</strong> Эта статья ожидает первой публикации.
+    {% if user.is_staff and post.status == 'checking' and not post.is_verified %}
+    <div class="alert alert-fintech-info d-flex flex-column flex-sm-row justify-content-between align-items-sm-center p-3 mb-4 rounded-4 border-0 shadow-sm gap-3">
+        <div class="d-flex align-items-center">
+            <div class="alert-icon-box bg-info-subtle text-info me-3 rounded-3">
+                <i class="bi bi-shield-exclamation fs-4"></i>
+            </div>
+            <div>
+                <strong class="text-dark d-block mb-0.5">Модерация контента</strong>
+                <span class="text-secondary small">Эта статья ожидает проверки и своей первой публикации.</span>
+            </div>
         </div>
-        <form action="{% url 'blog:post_update' post.slug %}" method="post" class="m-0">
+        <form action="{% url 'blog:post_update' post.slug %}" method="post" class="m-0 w-100 w-sm-auto text-end">
             {% csrf_token %}
             <input type="hidden" name="status" value="published">
             <input type="hidden" name="title" value="{{ post.title }}">
             <input type="hidden" name="content" value="{{ post.content }}">
             <input type="hidden" name="post_type" value="{{ post.post_type }}">
-            <button type="submit" class="btn btn-success btn-sm">Одобрить и опубликовать</button>
+            <button type="submit" class="btn btn-fintech-success btn-sm px-3 py-2 rounded-3 text-white fw-semibold">
+                Одобрить и опубликовать
+            </button>
         </form>
     </div>
     {% endif %}
 
     {% if post.has_unreviewed_changes and user.is_staff %}
-    <div class="alert alert-warning d-flex justify-content-between align-items-center">
-        <span>У этой статьи есть предложенные правки в тексте.</span>
-        <a href="{% url 'blog:post_review' post.pk %}" class="btn btn-warning btn-sm">Сравнить версии</a>
+    <div class="alert alert-fintech-warning d-flex flex-column flex-sm-row justify-content-between align-items-sm-center p-3 mb-4 rounded-4 border-0 shadow-sm gap-3">
+        <div class="d-flex align-items-center">
+            <div class="alert-icon-box bg-warning-subtle text-warning me-3 rounded-3">
+                <i class="bi bi-git fs-4"></i>
+            </div>
+            <div>
+                <strong class="text-dark d-block mb-0.5">Обнаружен черновик изменений</strong>
+                <span class="text-secondary small">У этой статьи есть предложенные автором правки в тексте.</span>
+            </div>
+        </div>
+        <a href="{% url 'blog:post_review' post.pk %}" class="btn btn-fintech-warning-action btn-sm px-3 py-2 rounded-3 fw-semibold text-nowrap text-center">
+            Сравнить версии
+        </a>
     </div>
     {% endif %}
 
-    <article>
-        <header class="mb-4">
-            <h1 class="fw-bolder mb-1">{{ post.title }}</h1>
-            <div class="text-muted fst-italic mb-2">
-                Опубликовано {{ post.created_at|date:"d.m.Y" }} автором {{ post.author.username }}
-            </div>
-            {% if post.linked_category %}
-                <span class="badge bg-info text-dark">Тема: {{ post.linked_category.name }}</span>
-            {% endif %}
-        </header>
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+            <article class="blog-post-wrapper">
+                <header class="mb-4 pb-3 border-bottom border-light-subtle">
+                    <h1 class="fw-800 text-dark tracking-tight mb-3 fs-32">{{ post.title }}</h1>
 
-        {% if user_category_spent %}
-        <div class="card border-primary mb-4">
-            <div class="card-body">
-                <h5 class="card-title text-primary">Ваша статистика</h5>
-                <p class="card-text">
-                    В этом месяце вы потратили в категории <strong>{{ post.linked_category.name }}</strong>:
-                    <span class="badge bg-primary fs-6">{{ user_category_spent }} ₽</span>
-                </p>
-                <a href="{% url 'home' %}?category={{ post.linked_category.id }}" class="btn btn-sm btn-outline-primary">
-                    Посмотреть транзакции
-                </a>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if request.user == post.author or request.user.is_staff %}
-            <a href="{% url 'blog:post_update' post.slug %}" class="btn btn-outline-warning">Редактировать</a>
-        {% endif %}
-
-        <div class="entry-content">
-            {{ post.content|markdown_to_html }}
-        </div>
-
-        <div class="like-section my-3 pb-3 border-bottom">
-            <button class="like-button btn btn-sm btn-outline-secondary"
-                    data-url="{% url 'interactions:like_toggle' 'post' post.id %}"
-                    style="border-radius: 20px;">
-                <span class="like-icon">{% if user_liked %}❤️{% else %}🤍{% endif %}</span>
-                <span class="like-count">{{ post.likes_count }}</span>
-            </button>
-        </div>
-
-        <hr>
-
-        <h3>Комментарии (<span id="comment-count-num">{{ post.comments.count }}</span>)</h3>
-
-        <div id="comments-wrapper" class="mb-4">
-            {% for comment in comments %}
-                {% if not comment.parent %}
-                    <div class="card mb-3 shadow-sm" id="comment-{{ comment.id }}">
-                        <div class="card-body">
-                            <h6 class="card-subtitle mb-2 text-muted">
-                                {{ comment.author.username }} <small>{{ comment.created_at|timesince }} назад</small>
-                            </h6>
-                            <p class="card-text">{{ comment.text }}</p>
-
-                            {% if user.is_authenticated %}
-                                <button class="btn btn-sm btn-link p-0 reply-btn text-decoration-none"
-                                        data-id="{{ comment.id }}"
-                                        data-author="{{ comment.author.username }}">Ответить</button>
-                            {% endif %}
-
-                            <div class="reply-form-placeholder mt-2"></div>
-
-                            <div class="ms-4 mt-2 border-start ps-3" id="replies-{{ comment.id }}">
-                                {% for reply in comment.replies.all %}
-                                    <div class="mb-2 small border-bottom pb-1">
-                                        <strong>{{ reply.author.username }}</strong>: {{ reply.text }}
-                                        {% if user.is_authenticated %}
-                                            <button class="btn btn-sm btn-link p-0 reply-btn text-decoration-none ms-2"
-                                                    data-id="{{ comment.id }}"
-                                                    data-author="{{ reply.author.username }}"
-                                                    style="font-size: 0.7rem;">(ответить)</button>
-                                        {% endif %}
-                                    </div>
-                                {% endfor %}
-                            </div>
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 text-muted fs-13">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-calendar3"></i>
+                            <span>{{ post.created_at|date:"d.m.Y" }}</span>
+                            <span class="text-muted-light">•</span>
+                            <i class="bi bi-person-circle"></i>
+                            <span class="fw-medium text-dark">{{ post.author.username }}</span>
                         </div>
+                        {% if post.linked_category %}
+                            <span class="badge rounded-pill px-2.5 py-1.5 fs-11 fw-bold bg-primary-subtle text-primary text-uppercase tracking-wider">
+                                Тема: {{ post.linked_category.name }}
+                            </span>
+                        {% endif %}
                     </div>
-                {% endif %}
-            {% endfor %}
-        </div>
+                </header>
 
-        {% if user.is_authenticated %}
-            <div class="card p-3 bg-light shadow-sm" id="main-form-container">
-                <h5 id="reply-title" class="h6">Оставить комментарий</h5>
-                <form id="comment-form" data-url="{% url 'interactions:add_comment' 'post' post.id %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="parent_id" id="parent-id-input" value="">
-                    <div class="mb-2">
-                        {{ comment_form.text }}
+                {% if user_category_spent %}
+                <div class="card border-0 bg-finance-gradient mb-4 rounded-4 shadow-fintech position-relative overflow-hidden">
+                    <div class="card-body p-4 position-relative z-1">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="finance-icon-box me-2.5">
+                                <i class="bi bi-wallet2 text-primary fs-5"></i>
+                            </div>
+                            <h5 class="card-title text-dark fw-bold mb-0 fs-16">Ваша финансовая аналитика</h5>
+                        </div>
+                        <p class="card-text text-secondary fs-14 mb-3">
+                            В этом месяце ваши расходы в категории <strong>{{ post.linked_category.name }}</strong> составили:
+                            <span class="badge bg-primary text-white px-2.5 py-1.5 fs-14 rounded-3 ms-1 fw-bold">{{ user_category_spent }} ₽</span>
+                        </p>
+                        <a href="{% url 'home' %}?category={{ post.linked_category.id }}" class="btn btn-fintech-primary-sm btn-sm px-3 py-2 rounded-3 fw-semibold fs-12 text-white">
+                            Посмотреть транзакции <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
                     </div>
-                    <div class="d-flex justify-content-between">
-                        <button type="submit" class="btn btn-primary btn-sm">Отправить</button>
-                        <button type="button" id="cancel-reply" class="btn btn-outline-secondary btn-sm d-none">Отмена</button>
+                    <div class="finance-bg-decoration"></div>
+                </div>
+                {% endif %}
+
+                <div class="entry-content text-dark-emphasis lh-lg mb-4 fs-16">
+                    {{ post.content|markdown_to_html }}
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center my-4 pt-3 border-top border-light-subtle">
+                    <div class="like-section">
+                        <button class="like-button btn btn-sm btn-like-fintech d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm transition-all"
+                                data-url="{% url 'interactions:like_toggle' 'post' post.id %}">
+                            <span class="like-icon">{% if user_liked %}❤️{% else %}🤍{% endif %}</span>
+                            <span class="like-count fw-bold text-dark fs-13">{{ post.likes_count }}</span>
+                        </button>
                     </div>
-                </form>
-            </div>
-        {% else %}
-            <p class="text-center py-3"><a href="{% url 'login' %}">Войдите</a>, чтобы оставить комментарий.</p>
-        {% endif %}
-    </article>
+
+                    {% if request.user == post.author or request.user.is_staff %}
+                        <a href="{% url 'blog:post_update' post.slug %}" class="btn btn-fintech-outline-sm btn-sm px-3 py-2 rounded-3 fw-semibold">
+                            <i class="bi bi-pencil me-1.5"></i>Редактировать статью
+                        </a>
+                    {% endif %}
+                </div>
+
+                <div class="comments-section-container mt-5">
+                    <h3 class="fs-20 fw-bold text-dark mb-4">
+                        Комментарии <span class="text-muted-light fs-16 fw-normal">(<span id="comment-count-num" class="fw-bold text-secondary">{{ post.comments.count }}</span>)</span>
+                    </h3>
+
+                    <div id="comments-wrapper" class="mb-4">
+                        {% for comment in comments %}
+                            {% if not comment.parent %}
+                                <div class="card mb-3 shadow-fintech border-0 rounded-4 bg-white" id="comment-${comment.id}">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="avatar-placeholder rounded-circle text-primary bg-primary-subtle fw-bold fs-13 d-flex align-items-center justify-content-center">
+                                                    {{ comment.author.username|slice:":1"|upper }}
+                                                </div>
+                                                <h6 class="card-subtitle mb-0 text-dark fw-bold fs-14">{{ comment.author.username }}</h6>
+                                                <span class="text-muted-light fs-11">•</span>
+                                                <small class="text-muted-light fs-12">{{ comment.created_at|timesince }} назад</small>
+                                            </div>
+                                        </div>
+                                        <p class="card-text text-secondary fs-14 lh-base mb-2 ps-1">{{ comment.text }}</p>
+
+                                        {% if user.is_authenticated %}
+                                            <button class="btn btn-sm btn-link p-0 reply-btn text-primary fw-semibold fs-12 text-decoration-none shadow-none ps-1 transition-all"
+                                                    data-id="{{ comment.id }}"
+                                                    data-author="{{ comment.author.username }}">
+                                                <i class="bi bi-reply-fill me-1"></i>Ответить
+                                            </button>
+                                        {% endif %}
+
+                                        <div class="reply-form-placeholder mt-3"></div>
+
+                                        <div class="ms-3 mt-3 comment-thread-line ps-3 position-relative" id="replies-{{ comment.id }}">
+                                            {% for reply in comment.replies.all %}
+                                                <div class="mb-3 small pb-2 border-light-subtle position-relative">
+                                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                                        <strong class="text-dark fs-13 fw-bold">{{ reply.author.username }}</strong>
+                                                        <span class="text-muted-light" style="font-size: 8px;">●</span>
+                                                        <span class="text-muted fs-11">ответ</span>
+                                                    </div>
+                                                    <div class="text-secondary fs-13 lh-base mb-1">{{ reply.text }}</div>
+
+                                                    {% if user.is_authenticated %}
+                                                        <button class="btn btn-sm btn-link p-0 reply-btn text-muted fw-medium text-decoration-none transition-all"
+                                                                data-id="{{ comment.id }}"
+                                                                data-author="{{ reply.author.username }}"
+                                                                style="font-size: 0.75rem;">
+                                                            (ответить)
+                                                        </button>
+                                                    {% endif %}
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    {% if user.is_authenticated %}
+                        <div class="card p-4 border-0 rounded-4 bg-light shadow-fintech-sm" id="main-form-container">
+                            <h5 id="reply-title" class="fs-15 fw-bold text-dark mb-3">Оставить комментарий</h5>
+                            <form id="comment-form" data-url="{% url 'interactions:add_comment' 'post' post.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="parent_id" id="parent-id-input" value="">
+                                <div class="mb-3 comment-textarea-wrapper">
+                                    {{ comment_form.text }}
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <button type="submit" class="btn btn-fintech-primary px-4 py-2 rounded-3 fw-semibold fs-13 text-white transition-all shadow-sm">
+                                        Отправить комментарий
+                                    </button>
+                                    <button type="button" id="cancel-reply" class="btn btn-fintech-outline-sm btn-sm px-3 py-2 rounded-3 fw-semibold d-none">
+                                        Отмена
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4 bg-light rounded-4 border-dashed my-4">
+                            <p class="text-muted small mb-0">
+                                <a href="{% url 'login' %}" class="fw-bold text-primary text-decoration-none">Войдите</a>, чтобы оставлять комментарии и участвовать в обсуждениях.
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </article>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -166,17 +237,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const commentsWrapper = document.getElementById('comments-wrapper');
     const countNum = document.getElementById('comment-count-num');
 
+    // КРАСОТА: Прокачали разметку динамической формы ответа под новый дизайн
     function createReplyForm(parentId, authorName) {
         return `
-            <div class="card p-2 border-0 bg-light mb-2 dynamic-reply-container">
-                <small class="text-muted">Ответ для <b>${authorName}</b></small>
+            <div class="card p-3 border-0 bg-light rounded-3 mb-2 dynamic-reply-container animate-fade-in-quick shadow-sm">
+                <div class="d-flex align-items-center gap-1.5 mb-2 fs-12 text-muted">
+                    <i class="bi bi-arrow-return-right"></i> Ответ для <b class="text-dark">${authorName}</b>
+                </div>
                 <form class="dynamic-reply-form" data-url="{% url 'interactions:add_comment' 'post' post.id %}">
                     {% csrf_token %}
                     <input type="hidden" name="parent_id" value="${parentId}">
-                    <textarea name="text" class="form-control form-control-sm mb-2" rows="2" required placeholder="Ваш ответ..."></textarea>
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary btn-sm">Отправить</button>
-                        <button type="button" class="btn btn-link btn-sm text-muted cancel-dynamic">Отмена</button>
+                    <textarea name="text" class="form-control form-control-sm mb-2 rounded-3 border-light-subtle p-2 fs-13" rows="2" required placeholder="Напишите ответ..."></textarea>
+                    <div class="d-flex gap-2 justify-content-start align-items-center">
+                        <button type="submit" class="btn btn-fintech-primary-sm btn-sm px-3 py-1.5 rounded-3 text-white fw-semibold fs-12">Отправить</button>
+                        <button type="button" class="btn btn-sm text-muted cancel-dynamic fw-medium fs-12 text-decoration-none hover-link">Отмена</button>
                     </div>
                 </form>
             </div>
@@ -185,11 +259,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- ДЕЛЕГИРОВАНИЕ КЛИКОВ (Ответить и Отмена) ---
     document.addEventListener('click', function(e) {
-        // Клик на "Ответить"
         if (e.target.classList.contains('reply-btn')) {
             const commentId = e.target.dataset.id;
             const author = e.target.dataset.author;
-            const card = document.getElementById(`comment-${commentId}`);
+            const card = document.getElementById(`comment-${commentId}`) || e.target.closest('.card');
             const placeholder = card.querySelector('.reply-form-placeholder');
 
             document.querySelectorAll('.dynamic-reply-container').forEach(el => el.remove());
@@ -198,12 +271,10 @@ document.addEventListener('DOMContentLoaded', function() {
             placeholder.querySelector('textarea').focus();
         }
 
-        // Клик на "Отмена" в динамической форме
         if (e.target.classList.contains('cancel-dynamic')) {
             e.target.closest('.dynamic-reply-container').remove();
         }
 
-        // Логика лайков
         if (e.target.closest('.like-button')) {
             const btn = e.target.closest('.like-button');
             fetch(btn.dataset.url, {
@@ -237,30 +308,47 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.status === 'success') {
                     if (pId) {
-                        // Вставляем ответ
+                        // Вставляем ответ (Прокачано под премиум-стиль вложенных веток)
                         const repliesDiv = document.getElementById(`replies-${pId}`);
                         const safeAuthor = escapeHtml(data.author);
                         const safeText = escapeHtml(data.text);
                         const replyHtml = `
-                            <div class="mb-2 small border-bottom pb-1">
-                                <strong>${safeAuthor}</strong>: ${safeText}
-                                <button class="btn btn-sm btn-link p-0 reply-btn text-decoration-none ms-2"
-                                        data-id="${pId}" data-author="${safeAuthor}" style="font-size: 0.7rem;">(ответить)</button>
+                            <div class="mb-3 small pb-2 border-light-subtle position-relative animate-fade-in-quick">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <strong class="text-dark fs-13 fw-bold">${safeAuthor}</strong>
+                                    <span class="text-muted-light" style="font-size: 8px;">●</span>
+                                    <span class="text-muted fs-11">только что</span>
+                                </div>
+                                <div class="text-secondary fs-13 lh-base mb-1">${safeText}</div>
+                                <button class="btn btn-sm btn-link p-0 reply-btn text-muted fw-medium text-decoration-none transition-all"
+                                        data-id="${pId}" data-author="${safeAuthor}" style="font-size: 0.75rem;">(ответить)</button>
                             </div>`;
                         repliesDiv.insertAdjacentHTML('beforeend', replyHtml);
                         form.closest('.dynamic-reply-container').remove();
                     } else {
+                        // Вставляем родительский коммент (Прокачано под премиум-карточку)
                         const safeAuthor = escapeHtml(data.author);
                         const safeText = escapeHtml(data.text);
                         const newCommentHtml = `
-                            <div class="card mb-3 shadow-sm border-primary" id="comment-${data.comment_id}">
-                                <div class="card-body">
-                                    <h6 class="card-subtitle mb-2 text-muted">${safeAuthor} <small>только что</small></h6>
-                                    <p class="card-text">${safeText}</p>
-                                    <button class="btn btn-sm btn-link p-0 reply-btn text-decoration-none"
-                                            data-id="${data.comment_id}" data-author="${safeAuthor}">Ответить</button>
-                                    <div class="reply-form-placeholder mt-2"></div>
-                                    <div class="ms-4 mt-2 border-start ps-3" id="replies-${data.comment_id}"></div>
+                            <div class="card mb-3 shadow-fintech border-primary-subtle rounded-4 bg-white animate-fade-in-quick" id="comment-${data.comment_id}">
+                                <div class="card-body p-4">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar-placeholder rounded-circle text-primary bg-primary-subtle fw-bold fs-13 d-flex align-items-center justify-content-center">
+                                                ${safeAuthor.charAt(0).toUpperCase()}
+                                            </div>
+                                            <h6 class="card-subtitle mb-0 text-dark fw-bold fs-14">${safeAuthor}</h6>
+                                            <span class="text-muted-light fs-11">•</span>
+                                            <small class="text-primary-emphasis fs-12 fw-medium">только что</small>
+                                        </div>
+                                    </div>
+                                    <p class="card-text text-secondary fs-14 lh-base mb-2 ps-1">${safeText}</p>
+                                    <button class="btn btn-sm btn-link p-0 reply-btn text-primary fw-semibold fs-12 text-decoration-none shadow-none ps-1 transition-all"
+                                            data-id="${data.comment_id}" data-author="${safeAuthor}">
+                                        <i class="bi bi-reply-fill me-1"></i>Ответить
+                                    </button>
+                                    <div class="reply-form-placeholder mt-3"></div>
+                                    <div class="ms-3 mt-3 comment-thread-line ps-3 position-relative" id="replies-${data.comment_id}"></div>
                                 </div>
                             </div>`;
                         commentsWrapper.insertAdjacentHTML('beforeend', newCommentHtml);
@@ -274,4 +362,124 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Базовая тема разметки */
+    .article-theme {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    /* Архитектурные стили заголовков и размеров */
+    .fs-11 { font-size: 11px; }
+    .fs-12 { font-size: 12px; }
+    .fs-13 { font-size: 13px; }
+    .fs-14 { font-size: 14px; }
+    .fs-15 { font-size: 15px; }
+    .fs-16 { font-size: 1rem; }
+    .fs-20 { font-size: 1.25rem; }
+    .fs-32 { font-size: 2rem; @media (min-width: 768px) { font-size: 2.5rem; } }
+    .fw-800 { font-weight: 800; }
+    .tracking-tight { letter-spacing: -0.025em; }
+    .tracking-wider { letter-spacing: 0.05em; }
+    .text-muted-light { color: #cbd5e1; }
+    .gap-1.5 { gap: 0.375rem; }
+
+    /* Хлебные крошки */
+    .separator-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+        content: " / " !important;
+        color: #94a3b8;
+    }
+    .text-muted-link { color: #64748b; transition: color 0.2s; }
+    .text-muted-link:hover { color: #4f46e5; }
+
+    /* Премиальные алерты модерации */
+    .alert-fintech-info { background-color: #f0fdfa; border-left: 4px solid #14b8a6 !important; }
+    .alert-fintech-warning { background-color: #fffbeb; border-left: 4px solid #f59e0b !important; }
+    .alert-icon-box { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .bg-info-subtle { background-color: rgba(20, 184, 166, 0.1) !important; }
+    .bg-warning-subtle { background-color: rgba(245, 158, 11, 0.1) !important; }
+
+    .btn-fintech-success { background: #14b8a6; border: none; transition: background 0.2s; }
+    .btn-fintech-success:hover { background: #0d9488; }
+    .btn-fintech-warning-action { background: #f59e0b; color: #fff; border: none; transition: background 0.2s; }
+    .btn-fintech-warning-action:hover { background: #d97706; color: #fff; }
+
+    /* Кнопка лайка */
+    .btn-like-fintech { background: #ffffff; border: 1px solid #e2e8f0; }
+    .btn-like-fintech:hover { background: #f8fafc; transform: scale(1.05); border-color: #cbd5e1; }
+
+    /* Личные финансы Widget */
+    .bg-finance-gradient {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border: 1px solid #e2e8f0 !important;
+    }
+    .finance-icon-box {
+        background: rgba(79, 70, 229, 0.08);
+        width: 32px; height: 32px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .bg-primary-subtle { background-color: rgba(79, 70, 229, 0.08) !important; }
+    .shadow-fintech { box-shadow: 0 10px 25px rgba(15, 23, 42, 0.03) !important; }
+    .shadow-fintech-sm { box-shadow: 0 4px 12px rgba(15, 23, 42, 0.02) !important; }
+
+    /* Оформление контента */
+    .entry-content p { margin-bottom: 1.25rem; color: #334155; }
+    .entry-content h2, .entry-content h3 { color: #1e293b; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem; }
+
+    /* Комментарии и аватары */
+    .avatar-placeholder { width: 32px; height: 32px; flex-shrink: 0; }
+    .reply-btn:hover { color: #312e81 !important; transform: translateX(2px); }
+
+    /* Красивая направляющая линия для вложенных ответов (thread line) */
+    .comment-thread-line::before {
+        content: "";
+        position: absolute;
+        left: 0; top: 4px; bottom: 12px;
+        width: 2px;
+        background-color: #e2e8f0;
+        border-radius: 2px;
+    }
+
+    /* Кастомная стилизация дефолтной формы Django */
+    .comment-textarea-wrapper textarea,
+    #comment-form textarea,
+    #comment-form input[type="text"] {
+        display: block;
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        font-family: inherit;
+        color: #334155;
+        background-color: #ffffff;
+        background-clip: padding-box;
+        border: 1px solid #cbd5e1;
+        border-radius: 0.5rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    .comment-textarea-wrapper textarea:focus, #comment-form textarea:focus {
+        border-color: #6366f1;
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.15);
+    }
+
+    /* Кнопки экосистемы */
+    .btn-fintech-primary { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); border: none; }
+    .btn-fintech-primary:hover { background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%); transform: translateY(-1px); }
+    .btn-fintech-primary-sm { background: #4f46e5; border: none; }
+    .btn-fintech-primary-sm:hover { background: #4338ca; }
+    .btn-fintech-outline-sm { border: 1px solid #cbd5e1; color: #475569; background: #ffffff; }
+    .btn-fintech-outline-sm:hover { background: #f8fafc; color: #1e293b; border-color: #94a3b8; }
+
+    .border-dashed { border: 2px dashed #e2e8f0 !important; }
+    .hover-link:hover { color: #4f46e5 !important; }
+
+    /* Быстрые микро-анимации */
+    .animate-fade-in-quick { animation: fadeInQuick 0.25s ease-out forwards; }
+    @keyframes fadeInQuick {
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
 {% endblock %}

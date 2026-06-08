@@ -1,46 +1,53 @@
-{% extends 'base.html' %}
-{% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h2 fw-bold mb-0">Блог и база знаний</h1>
-        <div class="d-flex gap-2">
-            <a href="{% url 'blog:user_posts' %}" class="btn btn-outline-primary d-flex align-items-center">
-                <i class="bi bi-person-lines-fill me-2"></i>Мои статьи
-            </a>
-            <a href="{% url 'blog:post_create' %}" class="btn btn-success d-flex align-items-center">
-                <i class="bi bi-pencil-square me-2"></i>Написать статью
-            </a>
-        </div>
-    </div>
+{% extends "base.html" %}
+{% load static %}
 
-    <div class="row">
+{% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<div class="container py-4 fintech-theme">
+   <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-4 mb-5 animate-fade-in-up" style="animation-delay: 0.1s;">
+    <div>
+        <h2 class="text-dark fw-bold mb-1 d-flex align-items-center">
+            <div class="icon-glow-primary me-3">
+                <i class="bi bi-bookmark-heart-fill text-primary"></i>
+            </div>
+            Блог и база знаний
+        </h2>
+        <p class="text-muted small mb-0 fs-14">Полезные статьи, аналитика рынка и финансовые лайфхаки от экспертов</p>
+    </div>
+    <div class="d-flex flex-column flex-sm-row gap-2 w-200 w-md-auto">
+        <a href="{% url 'blog:user_posts' %}" class="btn btn-fintech-outline px-3 py-2-5 rounded-pill fw-semibold fs-13 transition-all text-nowrap text-center">
+            <i class="bi bi-person-lines-fill me-2"></i>Мои статьи
+        </a>
+        <a href="{% url 'blog:post_create' %}" class="btn btn-fintech-primary px-4 py-2-5 rounded-pill shadow-lg fw-semibold fs-13 transition-all text-white text-nowrap text-center">
+            <i class="bi bi-pencil-square me-2"></i>Написать статью
+        </a>
+    </div>
+</div>
+
+    <div class="row g-4 animate-fade-in-up" style="animation-delay: 0.2s;">
         {% for post in posts %}
-<!--        {% if user.is_staff and post.has_unreviewed_changes %}-->
-<!--            <div class="alert alert-warning d-flex justify-content-between align-items-center mt-2">-->
-<!--                <span><i class="bi bi-exclamation-triangle-fill"></i> У статьи есть неопубликованные правки!</span>-->
-<!--                <a href="{% url 'blog:post_review' post.pk %}" class="btn btn-sm btn-warning">Проверить правки</a>-->
-<!--            </div>-->
-<!--        {% endif %}-->
-        <div class="col-md-6 mb-4">
-            <div class="card h-100 position-relative shadow-sm border-0">
-               <button class="like-button position-absolute top-0 end-0 m-2"
+        <div class="col-md-6">
+            <div class="card h-100 position-relative shadow-fintech border-0 rounded-4 bg-white overflow-hidden transition-all hover-scale">
+
+               <button class="like-button position-absolute top-0 end-0 m-3 d-flex flex-column align-items-center justify-content-center transition-all"
                     data-id="{{ post.id }}"
                     data-model="post"
-                    data-url="{% url 'interactions:like_toggle' 'post' post.id %}"
-                    style="background: white; border-radius: 50%; border: none; z-index: 10; width: 40px; height: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-
-                <span class="like-icon" style="font-size: 1.2rem;">
-                    {% if post.user_liked %}❤️{% else %}🤍{% endif %}
-                </span>
-                <small class="like-count" style="font-size: 0.75rem; font-weight: bold; color: #333;">
-                    {{ post.likes_count }}
-                </small>
+                    data-url="{% url 'interactions:like_toggle' 'post' post.id %}">
+                    <span class="like-icon mb-0.5">
+                        {% if post.user_liked %}❤️{% else %}🤍{% endif %}
+                    </span>
+                    <small class="like-count">
+                        {{ post.likes_count }}
+                    </small>
                 </button>
 
                 {% if user.is_staff and post.has_unreviewed_changes %}
                 <a href="{% url 'blog:post_review' post.pk %}"
                    class="position-absolute end-0 review-alert-indicator"
-                   style="top: 65px; margin-right: 12px;"
+                   style="top: 68px; margin-right: 18px;"
                    data-bs-toggle="tooltip"
                    title="Проверить предложенные правки">
                     <div class="alert-pulse">
@@ -49,18 +56,34 @@
                 </a>
                 {% endif %}
 
-                <div class="card-body">
-                    <h5 class="card-title pe-5 fw-bold">{{ post.title }}</h5>
-                    <p class="text-muted small">
-                        <i class="bi bi-person me-1"></i>{{ post.author.username }} |
-                        <span class="badge bg-light text-dark border">{{ post.get_post_type_display }}</span>
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="mb-2">
+                        <span class="badge rounded-pill px-2.5 py-1.5 fs-11 fw-bold bg-primary-subtle text-primary text-uppercase tracking-wider">
+                            {{ post.get_post_type_display }}
+                        </span>
+                    </div>
+
+                    <h5 class="card-title fw-bold text-dark fs-18 mb-2 pe-5 transition-all">
+                        {{ post.title }}
+                    </h5>
+
+                    <p class="text-muted fs-12 d-flex align-items-center gap-1.5 mb-3">
+                        <i class="bi bi-person-circle text-muted-light fs-14"></i>
+                        <span>{{ post.author.username }}</span>
                     </p>
-                    <p class="card-text text-secondary">{{ post.content|truncatewords:25 }}</p>
+
+                    <p class="card-text text-secondary fs-14 lh-base flex-grow-1">
+                        {{ post.content|truncatewords:25 }}
+                    </p>
                 </div>
 
-                <div class="card-footer bg-transparent border-top-0 pb-3">
-                    <a href="{% url 'blog:post_detail' post.slug %}" class="btn btn-primary btn-sm px-4">Читать далее</a>
-                    <span class="float-end text-muted small"><i class="bi bi-clock me-1"></i>{{ post.read_time }} мин.</span>
+                <div class="card-footer bg-transparent border-0 px-4 pb-4 pt-0 d-flex justify-content-between align-items-center">
+                    <a href="{% url 'blog:post_detail' post.slug %}" class="btn btn-fintech-light px-3 py-2 rounded-3 fw-semibold fs-13 text-primary transition-all">
+                        Читать далее <i class="bi bi-arrow-right ms-1 transition-all arrow-icon"></i>
+                    </a>
+                    <span class="text-muted-light fs-12 d-flex align-items-center gap-1">
+                        <i class="bi bi-clock-history fs-13"></i> {{ post.read_time }} мин.
+                    </span>
                 </div>
             </div>
         </div>
@@ -72,7 +95,6 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
@@ -126,31 +148,119 @@
 
 {% block extra_css %}
 <style>
-    /* Увеличиваем расстояние между иконкой и числом */
+    /* Базовые стили темы */
+    .fintech-theme {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    /* Утилиты размеров и отступов */
+    .fs-11 { font-size: 11px; }
+    .fs-12 { font-size: 12px; }
+    .fs-13 { font-size: 13px; }
+    .fs-14 { font-size: 14px; }
+    .fs-18 { font-size: 1.125rem; }
+    .gap-1-5 { gap: 0.375rem; }
+    .gap-2.5 { gap: 0.625rem; }
+    .py-2-5 { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
+    .tracking-wider { letter-spacing: 0.04em; }
+
+    .text-muted-light { color: #94a3b8; }
+    .bg-primary-subtle { background-color: rgba(79, 70, 229, 0.08) !important; }
+    .transition-all { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+    /* Теневой профиль */
+    .shadow-fintech { box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04) !important; }
+
+    /* Премиальная кнопка лайка */
+    .like-button {
+        background: #ffffff;
+        border: 1px solid #f1f5f9;
+        border-radius: 100px;
+        z-index: 10;
+        width: 42px;
+        height: 58px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+    }
+    .like-icon {
+        font-size: 1.15rem;
+        line-height: 1;
+    }
     .like-count {
-        margin-top: 5px !important; /* Добавляем отступ сверху */
-        font-weight: bold;
-        color: #555;
+        font-size: 0.725rem;
+        font-weight: 700;
+        color: #334155;
     }
-
     .like-button:hover {
-        transform: scale(1.1);
-        transition: transform 0.2s;
-        background: rgba(255,255,255,1) !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transform: scale(1.08) translateY(-1px);
+        background: #ffffff !important;
+        border-color: #cbd5e1;
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
     }
 
+    /* Ховер эффекты карточки */
+    .hover-scale:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08) !important;
+    }
+    .hover-scale:hover .card-title {
+        color: #4f46e5 !important;
+    }
+    .hover-scale:hover .arrow-icon {
+        transform: translateX(4px);
+    }
+
+    /* Свечение иконки заголовка */
+    .icon-glow-primary {
+        display: flex; align-items: center; justify-content: center;
+        width: 44px; height: 44px; border-radius: 12px;
+        background: rgba(79, 70, 229, 0.1); color: #4f46e5;
+        font-size: 20px;
+    }
+
+    /* Кнопки */
+    .btn-fintech-primary {
+        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+        border: none;
+    }
+    .btn-fintech-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25);
+    }
+
+    .btn-fintech-outline {
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        background: #ffffff;
+    }
+    .btn-fintech-outline:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        color: #1e293b;
+    }
+
+    .btn-fintech-light {
+        background-color: #f8fafc;
+        border: 1px solid #f1f5f9;
+    }
+    .btn-fintech-light:hover {
+        background-color: rgba(79, 70, 229, 0.06);
+        border-color: rgba(79, 70, 229, 0.15);
+    }
+
+    /* Предотвращение накладывания на лайк */
+    .card-title {
+        padding-right: 42px;
+    }
+
+    /* Модерация и пульсация */
     .review-alert-indicator {
         z-index: 10;
         text-decoration: none;
         transition: transform 0.2s ease;
     }
-
     .review-alert-indicator:hover {
-        transform: scale(1.2);
+        transform: scale(1.15);
     }
-
-    /* Эффект мягкого мигания для привлечения внимания модератора */
     .alert-pulse {
         animation: pulse-yellow 2s infinite;
         border-radius: 50%;
@@ -158,16 +268,20 @@
         align-items: center;
         justify-content: center;
     }
-
     @keyframes pulse-yellow {
-        0% { transform: scale(0.95); filter: drop-shadow(0 0 0 rgba(255, 193, 7, 0.7)); }
-        70% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(255, 193, 7, 0)); }
-        100% { transform: scale(0.95); filter: drop-shadow(0 0 0 rgba(255, 193, 7, 0)); }
+        0% { transform: scale(0.95); filter: drop-shadow(0 0 0 rgba(245, 158, 11, 0.7)); }
+        70% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0)); }
+        100% { transform: scale(0.95); filter: drop-shadow(0 0 0 rgba(245, 158, 11, 0)); }
     }
 
-    /* Дополнительный отступ для заголовка, чтобы он не упирался в блок иконок справа */
-    .card-title {
-        padding-right: 45px;
+    /* Анимация плавного появления */
+    @keyframes fadeInUp {
+        0% { opacity: 0; transform: translateY(12px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up {
+        opacity: 0;
+        animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 </style>
 {% endblock %}

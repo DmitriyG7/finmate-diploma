@@ -1,77 +1,134 @@
 {% extends "base.html" %}
+{% load static %}
 {% load widget_tweaks %}
 
+{% block title %}Категории операций{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <!-- Слева: Форма создания -->
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 fw-bold small text-uppercase">Новая категория</h5>
-                </div>
-                <div class="card-body">
-                    <form method="post">
+<div class="container py-5 fintech-theme animate-fade-in-up">
+
+    <div class="mb-5">
+        <h2 class="text-dark fw-bold mb-1 tracking-tight">Управление категориями</h2>
+        <p class="text-muted small mb-0 fs-14">Настраивайте категории для точного распределения ваших расходов и доходов</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4 col-md-5">
+            <div class="card shadow-fintech border-0 rounded-4 overflow-hidden bg-white sticky-top" style="top: 24px; z-index: 10;">
+                <div class="card-bg-decoration dec-form-1"></div>
+                <div class="card-body p-4 position-relative z-index-1">
+
+                    <div class="d-flex align-items-center gap-2 mb-4">
+                        <div class="icon-glow-primary shadow-sm" style="width: 40px; height: 40px; border-radius: 10px;">
+                            <i class="bi bi-plus-lg fs-16"></i>
+                        </div>
+                        <h5 class="mb-0 fw-bold text-dark fs-16 tracking-tight">Новая категория</h5>
+                    </div>
+
+                    <form method="post" novalidate>
                         {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger border-0 rounded-3 fs-13 py-2 mb-3">
+                                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+
                         <div class="mb-3">
-                            <label class="form-label small text-muted">Название</label>
-                            {% render_field form.name class="form-control" %}
+                            <label class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">Название</label>
+                            <div class="input-group fintech-input-group {% if form.name.errors %}is-invalid-group{% endif %}">
+                                <span class="input-group-text bg-light-soft border-end-0 text-muted px-3"><i class="bi bi-bookmark-heart-fill"></i></span>
+                                {% render_field form.name class="form-control form-control-fintech border-start-0 ps-2" placeholder="Например: Продукты, Зарплата" %}
+                            </div>
+                            {% if form.name.errors %}
+                                <div class="text-danger small mt-1 fw-medium fs-12"><i class="bi bi-exclamation-circle-fill"></i> {{ form.name.errors|first }}</div>
+                            {% endif %}
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label small text-muted">Тип</label>
-                            {% render_field form.category_type class="form-select" %}
+
+                        <div class="mb-4">
+                            <label class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">Тип операций</label>
+                            <div class="input-group fintech-input-group {% if form.category_type.errors %}is-invalid-group{% endif %}">
+                                <span class="input-group-text bg-light-soft border-end-0 text-muted px-3"><i class="bi bi-sliders"></i></span>
+                                {% render_field form.category_type class="form-select form-select-fintech border-start-0 ps-2" %}
+                            </div>
+                            {% if form.category_type.errors %}
+                                <div class="text-danger small mt-1 fw-medium fs-12"><i class="bi bi-exclamation-circle-fill"></i> {{ form.category_type.errors|first }}</div>
+                            {% endif %}
                         </div>
-                        <button type="submit" class="btn btn-success w-100 shadow-sm">Добавить</button>
+
+                        <button type="submit" class="btn btn-fintech-primary btn-lg w-100 py-2.5 rounded-3 fw-bold text-white transition-all fs-14">
+                            <i class="bi bi-check-lg me-1"></i> Добавить категорию
+                        </button>
                     </form>
                 </div>
             </div>
         </div>
 
-        <!-- Справа: Список категорий -->
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0">
+        <div class="col-lg-8 col-md-7">
+            <div class="card shadow-fintech border-0 rounded-4 overflow-hidden bg-white">
                 <div class="card-body p-0">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="ps-3">Название</th>
-                                <th class="text-center">Операций</th>
-                                <th>Тип</th>
-                                <th class="text-end pe-3">Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for cat in categories %}
-                            <tr>
-                                <td class="ps-3 fw-bold">
-                                    {{ cat.name }}
-                                </td>
-                                <td class="text-center">
-                                    <span class="text-muted small fw-normal">
-                                        {{ cat.transaction_count|default:0 }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge {% if cat.category_type == 'income' %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %} rounded-pill">
-                                        {{ cat.get_category_type_display }}
-                                    </span>
-                                </td>
-                                <td class="text-end pe-3">
-                                    {% if cat.user %}
-                                        <a href="{% url 'category_update' cat.pk %}" class="btn btn-sm btn-outline-secondary border-0"><i class="bi bi-pencil"></i></a>
-                                        <form method="post" action="{% url 'category_delete' cat.pk %}" class="d-inline" onsubmit="return confirm('Удалить категорию? Транзакции останутся, но категория станет архивной.')">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm btn-outline-danger border-0"><i class="bi bi-trash"></i></button>
-                                        </form>
-                                    {% else %}
-                                        <span class="text-muted small" title="Системная категория"><i class="bi bi-lock-fill"></i></span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle fs-14">
+                            <thead class="table-light text-secondary text-uppercase fs-11 tracking-wider" style="border-bottom: 1px solid #e2e8f0;">
+                                <tr>
+                                    <th class="ps-4 py-3 fw-bold">Название</th>
+                                    <th class="text-center py-3 fw-bold">Операций</th>
+                                    <th class="py-3 fw-bold">Тип</th>
+                                    <th class="text-end pe-4 py-3 fw-bold">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody style="border: none;">
+                                {% for cat in categories %}
+                                <tr class="transition-all">
+                                    <td class="ps-4 py-3 fw-semibold text-dark">
+                                        {{ cat.name }}
+                                    </td>
+
+                                    <td class="text-center py-3">
+                                        <span class="badge bg-light text-secondary rounded-pill px-2.5 py-1.5 border fw-medium">
+                                            {{ cat.transaction_count|default:0 }}
+                                        </span>
+                                    </td>
+
+                                    <td class="py-3">
+                                        {% if cat.category_type == 'income' %}
+                                            <span class="badge bg-success-subtle text-success px-2.5 py-1.5 rounded-pill fw-medium fs-12">
+                                                <i class="bi bi-arrow-up-right me-1"></i> {{ cat.get_category_type_display }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger-subtle text-danger px-2.5 py-1.5 rounded-pill fw-medium fs-12">
+                                                <i class="bi bi-arrow-down-left me-1"></i> {{ cat.get_category_type_display }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td class="text-end pe-4 py-3">
+                                        {% if cat.user %}
+                                            <div class="d-inline-flex gap-1">
+                                                <a href="{% url 'category_update' cat.pk %}" class="btn btn-sm btn-fintech-outline border-0 p-2 rounded-2" title="Редактировать">
+                                                    <i class="bi bi-pencil fs-14"></i>
+                                                </a>
+                                                <form method="post" action="{% url 'category_delete' cat.pk %}" class="d-inline" onsubmit="return confirm('Удалить категорию? Транзакции останутся, но категория станет архивной.')">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger border-0 p-2 rounded-2" title="Удалить">
+                                                        <i class="bi bi-trash fs-14"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        {% else %}
+                                            <span class="badge bg-light text-muted border px-2.5 py-1.5 rounded-2 fw-medium fs-12" title="Системная категория. Нельзя изменить.">
+                                                <i class="bi bi-lock-fill me-1"></i> Системная
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
+</div>
 {% endblock %}

@@ -1,196 +1,380 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<div class="container py-4 fintech-theme animate-fade-in-up">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-4 mb-5">
         <div>
-            <h1 class="h3 mb-1">{{ goal.title }}</h1>
-            <div class="text-muted">Срок: {{ goal.target_date|date:"d.m.Y" }} | Статус: {{ goal.get_status_display }}</div>
+            <h1 class="text-dark fw-bold mb-1 tracking-tight d-flex align-items-center gap-2">
+                <i class="fas fa-bullseye text-primary opacity-75 fs-3"></i>{{ goal.title }}
+            </h1>
+            <div class="text-muted-light fs-14 fw-medium d-flex flex-wrap align-items-center gap-3">
+                <span><i class="far fa-calendar-alt me-1.5"></i>Срок: <span class="text-dark fw-semibold">{{ goal.target_date|date:"d.m.Y" }}</span></span>
+                <span class="text-muted-light">|</span>
+                <span><i class="fas fa-info-circle me-1.5"></i>Статус: <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle-custom text-uppercase px-2.5 py-1.5 fs-11 tracking-wider fw-bold">{{ goal.get_status_display }}</span></span>
+            </div>
         </div>
-        <a href="{% url 'advisor:goal_update' goal.pk %}" class="btn btn-outline-primary">Редактировать</a>
+        <a href="{% url 'advisor:goal_update' goal.pk %}" class="btn btn-fintech-outline px-4 py-2.5 rounded-pill fw-semibold fs-13 transition-all shadow-sm w-100 w-md-auto text-center">
+            <i class="fas fa-edit me-1.5"></i>Редактировать
+        </a>
     </div>
 
     <div class="row g-4">
         <div class="col-lg-7">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-light fw-semibold">Прогресс цели</div>
-                <div class="card-body">
+            <div class="card shadow-fintech border-0 mb-4 bg-white" style="border-radius: 20px;">
+                <div class="card-header bg-transparent border-0 px-4 pt-4 pb-0">
+                    <h5 class="fw-bold text-dark mb-0 tracking-tight d-flex align-items-center gap-2 fs-16">
+                        <i class="fas fa-chart-line text-primary opacity-75"></i>Прогресс цели
+                    </h5>
+                </div>
+                <div class="card-body p-4">
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <div class="border rounded p-3 h-100">
-                                <div class="small text-muted">Цель</div>
-                                <div class="fw-semibold">{{ goal.target_amount }} ₽</div>
+                            <div class="fintech-metric-box p-3 h-100">
+                                <div class="small text-muted-light fw-medium mb-1 fs-12">Финансовая цель</div>
+                                <div class="fw-bold text-dark fs-16 tracking-tight">{{ goal.target_amount }} ₽</div>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="border rounded p-3 h-100">
-                                <div class="small text-muted">Накоплено</div>
-                                <div class="fw-semibold">{{ advice.saved_amount }} ₽</div>
+                            <div class="fintech-metric-box p-3 h-100 border-success-subtle-custom bg-success-subtle-light">
+                                <div class="small text-success fw-semibold mb-1 fs-12">Уже накоплено</div>
+                                <div class="fw-bold text-success fs-16 tracking-tight">{{ advice.saved_amount }} ₽</div>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="border rounded p-3 h-100">
-                                <div class="small text-muted">Осталось</div>
-                                <div class="fw-semibold">{{ advice.remaining_amount }} ₽</div>
+                            <div class="fintech-metric-box p-3 h-100">
+                                <div class="small text-muted-light fw-medium mb-1 fs-12">Осталось собрать</div>
+                                <div class="fw-bold text-dark fs-16 tracking-tight">{{ advice.remaining_amount }} ₽</div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between small mb-1">
-                            <span>Прогресс</span>
-                            <span>{{ goal.progress_percent }}%</span>
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between align-items-center small mb-1.5 fw-semibold text-dark fs-13">
+                            <span class="opacity-75">Общий прогресс</span>
+                            <span class="text-primary fs-14 fw-bold">{{ goal.progress_percent }}%</span>
                         </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar" role="progressbar" style="width: {{ goal.progress_percent }}%;"></div>
+                        <div class="progress progress-fintech-glow" style="height: 10px; background-color: #f1f5f9; border-radius: 20px;">
+                            <div class="progress-bar btn-fintech-primary rounded-pill progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ goal.progress_percent }}%;"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card shadow-sm">
-                <div class="card-header bg-light fw-semibold">История пополнений</div>
-                <div class="card-body">
-                    <form method="post" action="{% url 'advisor:add_contribution' goal.pk %}" class="row g-3 mb-4 align-items-end">
+            <div class="card shadow-fintech border-0 bg-white" style="border-radius: 20px;">
+                <div class="card-header bg-transparent border-0 px-4 pt-4 pb-0">
+                    <h5 class="fw-bold text-dark mb-0 tracking-tight d-flex align-items-center gap-2 fs-16">
+                        <i class="fas fa-history text-primary opacity-75"></i>История пополнений
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" action="{% url 'advisor:add_contribution' goal.pk %}" class="row g-3 mb-4 align-items-end fintech-input-wrapper">
                         {% csrf_token %}
-                        <div class="col-md-3">
-                            <label class="form-label small text-muted mb-1">Сумма</label>
+                        <div class="col-sm-6 col-md-3">
+                            <label class="form-label small text-dark fw-semibold mb-1.5 opacity-75 fs-12">Сумма</label>
                             {{ contribution_form.amount }}
                         </div>
 
-                        <div class="col-md-3">
-                            <label class="form-label small text-muted mb-1">Списать со счета</label>
+                        <div class="col-sm-6 col-md-3">
+                            <label class="form-label small text-dark fw-semibold mb-1.5 opacity-75 fs-12">Списать со счета</label>
                             {{ contribution_form.wallet }}
                         </div>
 
-                        <div class="col-md-2">
-                            <label class="form-label small text-muted mb-1">Дата</label>
+                        <div class="col-sm-6 col-md-2">
+                            <label class="form-label small text-dark fw-semibold mb-1.5 opacity-75 fs-12">Дата</label>
                             {{ contribution_form.date }}
                         </div>
 
-                        <div class="col-md-2">
-                            <label class="form-label small text-muted mb-1">Комментарий</label>
+                        <div class="col-sm-6 col-md-2">
+                            <label class="form-label small text-dark fw-semibold mb-1.5 opacity-75 fs-12">Комментарий</label>
                             {{ contribution_form.comment }}
                         </div>
 
-                        <div class="col-md-2 d-grid">
-                            <button type="submit" class="btn btn-success">Добавить</button>
+                        <div class="col-12 col-md-2 d-grid">
+                            <button type="submit" class="btn btn-fintech-success text-white px-3 py-2 rounded-pill fw-semibold fs-13 transition-all shadow-sm">
+                                <i class="fas fa-plus me-1"></i>Внести
+                            </button>
                         </div>
                     </form>
 
                     {% if goal.contributions.all %}
                         <div class="table-responsive">
-                            <table class="table table-sm align-middle">
+                            <table class="table table-fintech align-middle m-0">
                                 <thead>
                                     <tr>
-                                        <th>Дата</th>
-                                        <th>Сумма</th>
-                                        <th>Счет списания</th> <th>Комментарий</th>
+                                        <th class="fs-12 fw-bold text-muted-light text-uppercase tracking-wider">Дата</th>
+                                        <th class="fs-12 fw-bold text-muted-light text-uppercase tracking-wider">Сумма</th>
+                                        <th class="fs-12 fw-bold text-muted-light text-uppercase tracking-wider">Счет списания</th>
+                                        <th class="fs-12 fw-bold text-muted-light text-uppercase tracking-wider">Комментарий</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                 {% for item in goal.contributions.all %}
                                     <tr>
-                                        <td>{{ item.date|date:"d.m.Y" }}</td>
-                                        <td>{{ item.amount }} ₽</td>
-                                        <td>{{ item.comment|default:"-" }}</td>
-                                        <td><span class="badge bg-secondary">{{ item.wallet.name }}</span></td> <td>{{ item.comment|default:"-" }}</td>
+                                        <td class="fs-14 fw-medium text-dark"><i class="far fa-calendar text-muted-light me-1.5"></i>{{ item.date|date:"d.m.Y" }}</td>
+                                        <td class="fs-14 fw-bold text-success">+{{ item.amount }} ₽</td>
+                                        <td><span class="badge rounded-pill bg-light text-dark border px-2.5 py-1.5 fs-12 fw-semibold"><i class="fas fa-wallet text-muted-light me-1.5"></i>{{ item.wallet.name }}</span></td>
+                                        <td class="fs-13 text-secondary italic-comment">{{ item.comment|default:"—" }}</td>
                                     </tr>
                                 {% endfor %}
                                 </tbody>
                             </table>
                         </div>
                     {% else %}
-                        <p class="text-muted mb-0">Пополнений пока нет.</p>
+                        <div class="text-center py-4 bg-light rounded-4 border border-dashed">
+                            <p class="text-muted-light mb-0 fs-14 fw-medium">Пополнений по данной цели пока нет.</p>
+                        </div>
                     {% endif %}
                 </div>
             </div>
         </div>
 
         <div class="col-lg-5">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-light fw-semibold">Расчет советчика</div>
-                <div class="card-body">
-                    <div class="small text-muted">Нужно откладывать</div>
-                    <div class="fs-5 fw-semibold mb-3">{{ advice.required_per_month }} ₽ / мес</div>
+            <div class="card shadow-fintech border-0 mb-4 bg-white overflow-hidden position-relative" style="border-radius: 20px;">
+                <div class="card-bg-decoration"></div>
+                <div class="card-header bg-transparent border-0 px-4 pt-4 pb-0 position-relative z-index-1">
+                    <h5 class="fw-bold text-dark mb-0 tracking-tight d-flex align-items-center gap-2 fs-16">
+                        <i class="fas fa-robot text-primary opacity-75"></i>Расчет советчика
+                    </h5>
+                </div>
+                <div class="card-body p-4 position-relative z-index-1">
+                    <div class="mb-3 p-3 bg-primary-subtle-light border-primary-subtle-custom rounded-4">
+                        <div class="small text-primary fw-semibold fs-12 mb-0.5">Необходимо откладывать</div>
+                        <div class="fs-4 fw-800 text-primary tracking-tight">{{ advice.required_per_month }} ₽ <span class="fs-14 fw-normal text-muted-light">/ мес</span></div>
+                    </div>
 
-                    <div class="small text-muted">Средний доход (3 мес)</div>
-                    <div class="fw-semibold mb-2">{{ advice.avg_income_per_month }} ₽ / мес</div>
+                    <div class="row g-2 border-top pt-3">
+                        <div class="col-6 mb-2">
+                            <div class="small text-muted-light fs-11 fw-medium mb-0.5">Средний доход (3 мес)</div>
+                            <div class="fw-bold text-dark fs-14"><i class="fas fa-arrow-down text-success fs-12 me-1.5"></i>{{ advice.avg_income_per_month }} ₽</div>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <div class="small text-muted-light fs-11 fw-medium mb-0.5">Средний расход (3 мес)</div>
+                            <div class="fw-bold text-dark fs-14"><i class="fas fa-arrow-up text-danger fs-12 me-1.5"></i>{{ advice.avg_expense_per_month }} ₽</div>
+                        </div>
+                        <div class="col-12 mb-1">
+                            <div class="small text-muted-light fs-11 fw-medium mb-0.5">Чистый свободный поток</div>
+                            <div class="fw-bold text-dark fs-14 d-flex align-items-center gap-1.5">
+                                <i class="fas fa-money-bill-wave text-secondary"></i>{{ advice.free_cashflow_per_month }} ₽ / мес
+                            </div>
+                        </div>
+                    </div>
 
-                    <div class="small text-muted">Средний расход (3 мес)</div>
-                    <div class="fw-semibold mb-2">{{ advice.avg_expense_per_month }} ₽ / мес</div>
-
-                    <div class="small text-muted">Свободный поток</div>
-                    <div class="fw-semibold mb-2">{{ advice.free_cashflow_per_month }} ₽ / мес</div>
-
-                    <div class="small text-muted">Прогноз достижения (текущий темп)</div>
-                    <div class="fw-semibold mb-0">
-                        {% if advice.projected_target_date %}
-                            {{ advice.projected_target_date|date:"d.m.Y" }}
-                        {% else %}
-                            Недостижимо при текущем потоке
-                        {% endif %}
+                    <div class="mt-3 pt-3 border-top">
+                        <div class="small text-muted-light fs-12 fw-medium mb-1">Прогноз достижения (текущий темп)</div>
+                        <div class="fw-bold tracking-tight {% if advice.projected_target_date %}text-dark fs-15{% else %}text-danger fs-13{% endif %}">
+                            {% if advice.projected_target_date %}
+                                <i class="far fa-calendar-check text-success me-1.5"></i>{{ advice.projected_target_date|date:"d.m.Y" }}
+                            {% else %}
+                                <i class="fas fa-ban me-1.5"></i>Недостижимо при текущем потоке
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-light fw-semibold">Сценарий what-if</div>
-                <div class="card-body">
-                    <form method="get" class="row g-2 mb-3">
+            <div class="card shadow-fintech border-0 mb-4 bg-white" style="border-radius: 20px;">
+                <div class="card-header bg-transparent border-0 px-4 pt-4 pb-0">
+                    <h5 class="fw-bold text-dark mb-0 tracking-tight d-flex align-items-center gap-2 fs-16">
+                        <i class="fas fa-sliders-h text-primary opacity-75"></i>Сценарий «Что, если?»
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="get" class="row g-2 mb-4 fintech-input-wrapper">
                         <div class="col-6">
-                            <label class="form-label small text-muted">Сократить расходы, %</label>
-                            <input
-                                type="number"
-                                min="0"
-                                max="90"
-                                class="form-control"
-                                name="expense_cut_percent"
-                                value="{{ scenario.expense_cut_percent }}"
-                            >
+                            <label class="form-label small text-muted-light fw-medium mb-1.5 fs-12">Сократить расходы, %</label>
+                            <input type="number" min="0" max="90" class="form-control" name="expense_cut_percent" value="{{ scenario.expense_cut_percent }}">
                         </div>
                         <div class="col-6">
-                            <label class="form-label small text-muted">Увеличить доход, %</label>
-                            <input
-                                type="number"
-                                min="0"
-                                max="300"
-                                class="form-control"
-                                name="income_raise_percent"
-                                value="{{ scenario.income_raise_percent }}"
-                            >
+                            <label class="form-label small text-muted-light fw-medium mb-1.5 fs-12">Увеличить доход, %</label>
+                            <input type="number" min="0" max="300" class="form-control" name="income_raise_percent" value="{{ scenario.income_raise_percent }}">
                         </div>
-                        <div class="col-12 d-grid">
-                            <button type="submit" class="btn btn-outline-primary btn-sm">Пересчитать сценарий</button>
+                        <div class="col-12 d-grid mt-2.5">
+                            <button type="submit" class="btn btn-fintech-outline btn-sm py-2 rounded-pill fw-semibold fs-12 transition-all">
+                                <i class="fas fa-calculator me-1.5"></i>Пересчитать сценарий
+                            </button>
                         </div>
                     </form>
 
-                    <div class="small text-muted">Свободный поток в сценарии</div>
-                    <div class="fw-semibold mb-2">{{ scenario.simulated_free_cashflow_per_month }} ₽ / мес</div>
-                    <div class="small text-muted">Разрыв по плану</div>
-                    <div class="fw-semibold mb-2">{{ scenario.simulated_gap_per_month }} ₽ / мес</div>
-                    <div class="small text-muted">Прогноз достижения в сценарии</div>
-                    <div class="fw-semibold">
-                        {% if scenario.simulated_projected_target_date %}
-                            {{ scenario.simulated_projected_target_date|date:"d.m.Y" }}
-                        {% else %}
-                            Недостижимо даже в текущем сценарии
-                        {% endif %}
+                    <div class="p-3 bg-light rounded-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2 fs-13">
+                            <span class="text-muted-light fw-medium">Поток в сценарии:</span>
+                            <span class="fw-bold text-dark">{{ scenario.simulated_free_cashflow_per_month }} ₽ / мес</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2 fs-13">
+                            <span class="text-muted-light fw-medium">Разрыв по плану:</span>
+                            <span class="fw-bold {% if scenario.simulated_gap_per_month > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ scenario.simulated_gap_per_month }} ₽ / мес
+                            </span>
+                        </div>
+                        <hr class="my-2 opacity-50">
+                        <div class="d-flex justify-content-between align-items-start fs-13">
+                            <span class="text-muted-light fw-medium">Прогноз в сценарии:</span>
+                            <span class="fw-bold text-end {% if scenario.simulated_projected_target_date %}text-primary{% else %}text-muted-light{% endif %}">
+                                {% if scenario.simulated_projected_target_date %}
+                                    <i class="fas fa-magic me-1"></i>{{ scenario.simulated_projected_target_date|date:"d.m.Y" }}
+                                {% else %}
+                                    Недостижимо в сценарии
+                                {% endif %}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card shadow-sm">
-                <div class="card-header bg-light fw-semibold">Рекомендации</div>
-                <div class="card-body">
-                    <ul class="mb-0">
-                        {% for rec in advice.recommendations %}
-                            <li class="mb-2">{{ rec }}</li>
-                        {% endfor %}
-                    </ul>
+            <div class="card shadow-fintech border-0 bg-white" style="border-radius: 20px;">
+                <div class="card-header bg-transparent border-0 px-4 pt-4 pb-0">
+                    <h5 class="fw-bold text-dark mb-0 tracking-tight d-flex align-items-center gap-2 fs-16">
+                        <i class="fas fa-lightbulb text-warning opacity-90"></i>Рекомендации ИИ
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    {% if advice.recommendations %}
+                        <ul class="list-unstyled mb-0 d-flex flex-column gap-2.5">
+                            {% for rec in advice.recommendations %}
+                                <li class="d-flex align-items-start gap-2.5 fs-13 fw-medium text-dark">
+                                    <i class="fas fa-check-circle text-success mt-0.5 fs-14 flex-shrink-0"></i>
+                                    <span>{{ rec }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted-light mb-0 fs-13 fw-medium">Умных рекомендаций для данной цели пока не сформировано.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* Глобальные стили для финтех-модулей */
+    .fintech-theme {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    /* Вспомогательные классы размеров и стилей */
+    .fs-11 { font-size: 11px; }
+    .fs-12 { font-size: 12px; }
+    .fs-13 { font-size: 13px; }
+    .fs-14 { font-size: 14px; }
+    .fs-15 { font-size: 15px; }
+    .fs-16 { font-size: 1rem; }
+    .fw-800 { font-weight: 800; }
+    .tracking-tight { letter-spacing: -0.025em; }
+    .tracking-wider { letter-spacing: 0.04em; }
+    .text-muted-light { color: #94a3b8; }
+    .gap-1.5 { gap: 0.375rem; }
+    .gap-2.5 { gap: 0.625rem; }
+    .z-index-1 { z-index: 1; }
+    .border-dashed { border: 2px dashed #cbd5e1 !important; }
+    .italic-comment { font-style: italic; color: #64748b; }
+
+    /* Темизация и тени карточек */
+    .shadow-fintech { box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04) !important; }
+    .transition-all { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+    .bg-primary-subtle { background-color: rgba(79, 70, 229, 0.08) !important; }
+    .bg-primary-subtle-light { background-color: rgba(79, 70, 229, 0.03) !important; }
+    .border-primary-subtle-custom { border: 1px solid rgba(79, 70, 229, 0.15) !important; }
+
+    .bg-success-subtle-light { background-color: rgba(16, 185, 129, 0.03) !important; }
+    .border-success-subtle-custom { border: 1px solid rgba(16, 185, 129, 0.15) !important; }
+
+    /* Метрики */
+    .fintech-metric-box {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+    }
+
+    /* Стилизация форм Django и стандартных инпутов */
+    .fintech-input-wrapper input,
+    .fintech-input-wrapper select {
+        display: block;
+        width: 100%;
+        padding: 0.55rem 0.85rem;
+        font-size: 13px;
+        font-weight: 500;
+        color: #1e293b;
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        transition: all 0.2s;
+    }
+    .fintech-input-wrapper input:focus,
+    .fintech-input-wrapper select:focus {
+        background-color: #ffffff;
+        border-color: #4f46e5;
+        outline: 0;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+    }
+
+    /* Таблицы */
+    .table-fintech thead th {
+        padding: 12px 16px;
+        background-color: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .table-fintech tbody td {
+        padding: 14px 16px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    /* Эффект свечения прогресс-бара */
+    .progress-fintech-glow {
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+    }
+
+    /* Стили кнопок */
+    .btn-fintech-primary {
+        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+        border: none;
+    }
+    .btn-fintech-outline {
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        background: #ffffff;
+    }
+    .btn-fintech-outline:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        color: #1e293b;
+    }
+    .btn-fintech-success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: none;
+    }
+    .btn-fintech-success:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    }
+
+    /* Фоновые декорации карт */
+    .card-bg-decoration {
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 130px;
+        height: 130px;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.03) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+        z-index: 0;
+    }
+
+    /* Плавная анимация появления */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up {
+        animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+</style>
 {% endblock %}
