@@ -1,7 +1,7 @@
 from django.utils import timezone
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import PersonalTransaction, Category, Wallet, WalletTransfer
+from .models import PersonalTransaction, Category, CategoryLimit, Wallet, WalletTransfer
 from django.db import models
 
 from personal_finance.models import OperationType
@@ -280,34 +280,74 @@ class TransferForm(FinanceFormMixin, forms.ModelForm):
 
 
 class CategoryForm(FinanceFormMixin, forms.ModelForm):
+    # Добавляем поле лимита прямо в форму
+    limit_amount = forms.DecimalField(
+        required=False,
+        min_value=Decimal('0.01'),
+        max_digits=12,
+        decimal_places=2,
+        label="Месячный лимит трат",
+        widget=forms.TextInput(attrs={'placeholder': 'Например: 15000'})
+    )
+
     class Meta:
         model = Category
         fields = ['name', 'category_type']
-        
+
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         self.apply_finance_styles()
+
+        # Меняем дефолтный пустой выбор
         current_choices = self.fields['category_type'].choices
         new_choices = list(current_choices)
         new_choices[0] = ("", "Выберите тип")
         self.fields['category_type'].choices = new_choices
 
+        # Если мы РЕДАКТИРУЕМ существующую категорию
         if self.instance and self.instance.pk:
-            self.fields['category_type'].disabled = True
+            # 1. Подтягиваем текущий лимит в поле формы
+            existing_limit = CategoryLimit.objects.filter(
+                user=self.user,
+                category=self.instance,
+                is_active=True
+            ).first()
+            if existing_limit:
+                self.fields['limit_amount'].initial = existing_limit.amount
+
+            # 2. ЗАЩИТА: Если категория СИСТЕМНАЯ, запрещаем менять имя и тип, но лимит менять МОЖНО
+            if self.instance.user is None:
+                self.fields['name'].disabled = True
+                self.fields['category_type'].disabled = True
+            else:
+                # Для обычных категорий при редактировании просто блочим тип
+                self.fields['category_type'].disabled = True
 
     def clean(self):
         cd = super().clean()
-        print(cd)
         name = cd.get("name")
         category_type = cd.get("category_type")
 
-        if not category_type and self.instance:
+        # Если поле задизейблено, Django не возвращает его в cleaned_data, берем из инстанса
+        if not category_type and self.instance and self.instance.pk:
             category_type = self.instance.category_type
+        if not name and self.instance and self.instance.pk:
+            name = self.instance.name
 
-        if name is not None and category_type is not None:
-            queryset = Category.objects.filter(user=self.user, name=name, category_type=category_type,
-                                                    is_active=True)
+        # Если тип категории — доход, лимит не имеет смысла
+        if category_type == 'income':
+            cd['limit_amount'] = None
+
+        # Проверка уникальности: только если категория НЕ системная
+        is_system = self.instance and self.instance.pk and self.instance.user is None
+        if name is not None and category_type is not None and not is_system:
+            queryset = Category.objects.filter(
+                user=self.user,
+                name=name,
+                category_type=category_type,
+                is_active=True
+            )
             if self.instance and self.instance.pk:
                 queryset = queryset.exclude(id=self.instance.pk)
 

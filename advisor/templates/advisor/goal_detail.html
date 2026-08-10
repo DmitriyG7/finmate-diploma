@@ -12,13 +12,13 @@
                 <i class="fas fa-bullseye text-primary opacity-75 fs-3"></i>{{ goal.title }}
             </h1>
             <div class="text-muted-light fs-14 fw-medium d-flex flex-wrap align-items-center gap-3">
-                <span><i class="far fa-calendar-alt me-1.5"></i>Срок: <span class="text-dark fw-semibold">{{ goal.target_date|date:"d.m.Y" }}</span></span>
+                <span><i class="far fa-calendar-alt me-2"></i>Срок: <span class="text-dark fw-semibold">{{ goal.target_date|date:"d.m.Y" }}</span></span>
                 <span class="text-muted-light">|</span>
-                <span><i class="fas fa-info-circle me-1.5"></i>Статус: <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle-custom text-uppercase px-2.5 py-1.5 fs-11 tracking-wider fw-bold">{{ goal.get_status_display }}</span></span>
+                <span><i class="fas fa-info-circle me-2"></i>Статус: <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle-custom text-uppercase px-2.5 py-1.5 fs-11 tracking-wider fw-bold">{{ goal.get_status_display }}</span></span>
             </div>
         </div>
-        <a href="{% url 'advisor:goal_update' goal.pk %}" class="btn btn-fintech-outline px-4 py-2.5 rounded-pill fw-semibold fs-13 transition-all shadow-sm w-100 w-md-auto text-center">
-            <i class="fas fa-edit me-1.5"></i>Редактировать
+        <a href="{% url 'advisor:goal_update' goal.pk %}" class="btn btn-fintech-outline btn-sm px-4 py-2.5 rounded-pill fw-semibold fs-14 transition-all shadow-sm text-center">
+            <i class="fas fa-edit me-2"></i>Редактировать
         </a>
     </div>
 
@@ -53,7 +53,7 @@
                     </div>
 
                     <div class="mt-4">
-                        <div class="d-flex justify-content-between align-items-center small mb-1.5 fw-semibold text-dark fs-13">
+                        <div class="d-flex justify-content-between align-items-center small mb-2 fw-semibold text-dark fs-13">
                             <span class="opacity-75">Общий прогресс</span>
                             <span class="text-primary fs-14 fw-bold">{{ goal.progress_percent }}%</span>
                         </div>
@@ -71,32 +71,34 @@
                     </h5>
                 </div>
                 <div class="card-body p-4">
-                    <form method="post" action="{% url 'advisor:add_contribution' goal.pk %}" class="row g-3 mb-4 align-items-end fintech-input-wrapper">
+                    <form method="post" action="{% url 'advisor:add_contribution' goal.pk %}" class="mb-4 fintech-input-wrapper">
                         {% csrf_token %}
-                        <div class="col-sm-6 col-md-3">
-                            <label class="form-label small text-dark fw-semibold mb-1.5 opacity-75 fs-12">Сумма</label>
-                            {{ contribution_form.amount }}
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-dark fw-semibold mb-1.5 opacity-75 fs-12">Сумма пополнения</label>
+                                {{ contribution_form.amount }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-dark fw-semibold mb-1.5 opacity-75 fs-12">Списать со счета</label>
+                                {{ contribution_form.wallet }}
+                            </div>
                         </div>
 
-                        <div class="col-sm-6 col-md-3">
-                            <label class="form-label small text-dark fw-semibold mb-1.5 opacity-75 fs-12">Списать со счета</label>
-                            {{ contribution_form.wallet }}
-                        </div>
-
-                        <div class="col-sm-6 col-md-2">
-                            <label class="form-label small text-dark fw-semibold mb-1.5 opacity-75 fs-12">Дата</label>
-                            {{ contribution_form.date }}
-                        </div>
-
-                        <div class="col-sm-6 col-md-2">
-                            <label class="form-label small text-dark fw-semibold mb-1.5 opacity-75 fs-12">Комментарий</label>
-                            {{ contribution_form.comment }}
-                        </div>
-
-                        <div class="col-12 col-md-2 d-grid">
-                            <button type="submit" class="btn btn-fintech-success text-white px-3 py-2 rounded-pill fw-semibold fs-13 transition-all shadow-sm">
-                                <i class="fas fa-plus me-1"></i>Внести
-                            </button>
+                        <div class="row g-3 align-items-end">
+                            <div class="col-sm-6 col-md-4">
+                                <label class="form-label small text-dark fw-semibold mb-1.5 opacity-75 fs-12">Дата</label>
+                                {{ contribution_form.date }}
+                            </div>
+                            <div class="col-sm-6 col-md-5">
+                                <label class="form-label small text-dark fw-semibold mb-1.5 opacity-75 fs-12">Комментарий</label>
+                                {{ contribution_form.comment }}
+                            </div>
+                            <div class="col-12 col-md-3 d-grid">
+                                <button type="submit" class="btn btn-fintech-success text-white px-3 py-2 rounded-pill fw-semibold fs-13 transition-all shadow-sm">
+                                    <i class="fas fa-plus me-2"></i>Внести
+                                </button>
+                            </div>
                         </div>
                     </form>
 
@@ -114,9 +116,9 @@
                                 <tbody>
                                 {% for item in goal.contributions.all %}
                                     <tr>
-                                        <td class="fs-14 fw-medium text-dark"><i class="far fa-calendar text-muted-light me-1.5"></i>{{ item.date|date:"d.m.Y" }}</td>
+                                        <td class="fs-14 fw-medium text-dark"><i class="far fa-calendar text-muted-light me-2"></i>{{ item.date|date:"d.m.Y" }}</td>
                                         <td class="fs-14 fw-bold text-success">+{{ item.amount }} ₽</td>
-                                        <td><span class="badge rounded-pill bg-light text-dark border px-2.5 py-1.5 fs-12 fw-semibold"><i class="fas fa-wallet text-muted-light me-1.5"></i>{{ item.wallet.name }}</span></td>
+                                        <td><span class="badge rounded-pill bg-light text-dark border px-2.5 py-1.5 fs-12 fw-semibold"><i class="fas fa-wallet text-muted-light me-2"></i>{{ item.wallet.name }}</span></td>
                                         <td class="fs-13 text-secondary italic-comment">{{ item.comment|default:"—" }}</td>
                                     </tr>
                                 {% endfor %}
@@ -149,15 +151,15 @@
                     <div class="row g-2 border-top pt-3">
                         <div class="col-6 mb-2">
                             <div class="small text-muted-light fs-11 fw-medium mb-0.5">Средний доход (3 мес)</div>
-                            <div class="fw-bold text-dark fs-14"><i class="fas fa-arrow-down text-success fs-12 me-1.5"></i>{{ advice.avg_income_per_month }} ₽</div>
+                            <div class="fw-bold text-dark fs-14"><i class="fas fa-arrow-down text-success fs-12 me-2"></i>{{ advice.avg_income_per_month }} ₽</div>
                         </div>
                         <div class="col-6 mb-2">
                             <div class="small text-muted-light fs-11 fw-medium mb-0.5">Средний расход (3 мес)</div>
-                            <div class="fw-bold text-dark fs-14"><i class="fas fa-arrow-up text-danger fs-12 me-1.5"></i>{{ advice.avg_expense_per_month }} ₽</div>
+                            <div class="fw-bold text-dark fs-14"><i class="fas fa-arrow-up text-danger fs-12 me-2"></i>{{ advice.avg_expense_per_month }} ₽</div>
                         </div>
                         <div class="col-12 mb-1">
                             <div class="small text-muted-light fs-11 fw-medium mb-0.5">Чистый свободный поток</div>
-                            <div class="fw-bold text-dark fs-14 d-flex align-items-center gap-1.5">
+                            <div class="fw-bold text-dark fs-14 d-flex align-items-center gap-2">
                                 <i class="fas fa-money-bill-wave text-secondary"></i>{{ advice.free_cashflow_per_month }} ₽ / мес
                             </div>
                         </div>
@@ -167,9 +169,9 @@
                         <div class="small text-muted-light fs-12 fw-medium mb-1">Прогноз достижения (текущий темп)</div>
                         <div class="fw-bold tracking-tight {% if advice.projected_target_date %}text-dark fs-15{% else %}text-danger fs-13{% endif %}">
                             {% if advice.projected_target_date %}
-                                <i class="far fa-calendar-check text-success me-1.5"></i>{{ advice.projected_target_date|date:"d.m.Y" }}
+                                <i class="far fa-calendar-check text-success me-2"></i>{{ advice.projected_target_date|date:"d.m.Y" }}
                             {% else %}
-                                <i class="fas fa-ban me-1.5"></i>Недостижимо при текущем потоке
+                                <i class="fas fa-ban me-2"></i>Недостижимо при текущем потоке
                             {% endif %}
                         </div>
                     </div>
@@ -185,16 +187,16 @@
                 <div class="card-body p-4">
                     <form method="get" class="row g-2 mb-4 fintech-input-wrapper">
                         <div class="col-6">
-                            <label class="form-label small text-muted-light fw-medium mb-1.5 fs-12">Сократить расходы, %</label>
-                            <input type="number" min="0" max="90" class="form-control" name="expense_cut_percent" value="{{ scenario.expense_cut_percent }}">
+                            <label class="form-label small text-muted-light fw-medium mb-1.5 fs-12">Сократить расходы, ₽</label>
+                            <input type="number" min="0" step="100" class="form-control" name="expense_cut_amount" value="{{ scenario.expense_cut_amount }}" placeholder="0">
                         </div>
                         <div class="col-6">
-                            <label class="form-label small text-muted-light fw-medium mb-1.5 fs-12">Увеличить доход, %</label>
-                            <input type="number" min="0" max="300" class="form-control" name="income_raise_percent" value="{{ scenario.income_raise_percent }}">
+                            <label class="form-label small text-muted-light fw-medium mb-1.5 fs-12">Увеличить доход, ₽</label>
+                            <input type="number" min="0" step="100" class="form-control" name="income_raise_amount" value="{{ scenario.income_raise_amount }}" placeholder="0">
                         </div>
-                        <div class="col-12 d-grid mt-2.5">
+                        <div class="col-12 d-grid mt-3">
                             <button type="submit" class="btn btn-fintech-outline btn-sm py-2 rounded-pill fw-semibold fs-12 transition-all">
-                                <i class="fas fa-calculator me-1.5"></i>Пересчитать сценарий
+                                <i class="fas fa-calculator me-2"></i>Пересчитать сценарий
                             </button>
                         </div>
                     </form>
@@ -215,7 +217,7 @@
                             <span class="text-muted-light fw-medium">Прогноз в сценарии:</span>
                             <span class="fw-bold text-end {% if scenario.simulated_projected_target_date %}text-primary{% else %}text-muted-light{% endif %}">
                                 {% if scenario.simulated_projected_target_date %}
-                                    <i class="fas fa-magic me-1"></i>{{ scenario.simulated_projected_target_date|date:"d.m.Y" }}
+                                    <i class="fas fa-magic me-2"></i>{{ scenario.simulated_projected_target_date|date:"d.m.Y" }}
                                 {% else %}
                                     Недостижимо в сценарии
                                 {% endif %}
@@ -228,14 +230,14 @@
             <div class="card shadow-fintech border-0 bg-white" style="border-radius: 20px;">
                 <div class="card-header bg-transparent border-0 px-4 pt-4 pb-0">
                     <h5 class="fw-bold text-dark mb-0 tracking-tight d-flex align-items-center gap-2 fs-16">
-                        <i class="fas fa-lightbulb text-warning opacity-90"></i>Рекомендации ИИ
+                        <i class="fas fa-lightbulb text-warning opacity-90"></i>Рекомендации
                     </h5>
                 </div>
                 <div class="card-body p-4">
                     {% if advice.recommendations %}
-                        <ul class="list-unstyled mb-0 d-flex flex-column gap-2.5">
+                        <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
                             {% for rec in advice.recommendations %}
-                                <li class="d-flex align-items-start gap-2.5 fs-13 fw-medium text-dark">
+                                <li class="d-flex align-items-start gap-2 fs-13 fw-medium text-dark">
                                     <i class="fas fa-check-circle text-success mt-0.5 fs-14 flex-shrink-0"></i>
                                     <span>{{ rec }}</span>
                                 </li>
@@ -270,8 +272,6 @@
     .tracking-tight { letter-spacing: -0.025em; }
     .tracking-wider { letter-spacing: 0.04em; }
     .text-muted-light { color: #94a3b8; }
-    .gap-1.5 { gap: 0.375rem; }
-    .gap-2.5 { gap: 0.625rem; }
     .z-index-1 { z-index: 1; }
     .border-dashed { border: 2px dashed #cbd5e1 !important; }
     .italic-comment { font-style: italic; color: #64748b; }
@@ -308,6 +308,19 @@
         border-radius: 12px;
         transition: all 0.2s;
     }
+
+    /* ИЗМЕНЕНИЕ: Кастомная аккуратная стрелочка-чеврон для селектов */
+    .fintech-input-wrapper select {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.85rem center;
+        background-size: 10px 10px;
+        padding-right: 2rem; /* Оставляем место справа, чтобы длинный текст кошелька не перекрывал птичку */
+    }
+
     .fintech-input-wrapper input:focus,
     .fintech-input-wrapper select:focus {
         background-color: #ffffff;

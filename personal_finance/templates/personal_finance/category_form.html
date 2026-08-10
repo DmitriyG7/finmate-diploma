@@ -26,7 +26,13 @@
                             <i class="bi bi-pencil-square text-primary fs-3"></i>
                         </div>
                         <h3 class="text-dark fw-bold mb-1 tracking-tight">Редактирование категории</h3>
-                        <p class="text-muted small mb-0 fs-14">Измените название или тип распределения средств</p>
+                        <p class="text-muted small mb-0 fs-14">
+                            {% if object.user %}
+                                Измените название или параметры распределения средств
+                            {% else %}
+                                <span class="text-primary fw-medium"><i class="bi bi-lock-fill"></i> Системная категория:</span> доступна только настройка лимита трат
+                            {% endif %}
+                        </p>
                     </div>
 
                     <form method="post" novalidate>
@@ -56,17 +62,33 @@
                             {% endif %}
                         </div>
 
-                        <div class="mb-5">
+                        <div class="mb-4">
                             <label class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">{{ form.category_type.label }}</label>
                             <div class="input-group fintech-input-group {% if form.category_type.errors %}is-invalid-group{% endif %}">
                                 <span class="input-group-text bg-light-soft border-end-0 text-muted px-3">
                                     <i class="bi bi-sliders"></i>
                                 </span>
-                                {% render_field form.category_type class="form-select form-select-fintech border-start-0 ps-2" %}
+                                {% render_field form.category_type class="form-select form-select-fintech border-start-0 ps-2" id="id_category_type" %}
                             </div>
                             {% if form.category_type.errors %}
                                 <div class="text-danger small mt-1.5 fw-medium d-flex align-items-center gap-1 fs-12">
                                     <i class="bi bi-exclamation-circle-fill"></i> {{ form.category_type.errors|first }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-5 transition-all" id="limitFieldWrapper">
+                            <label class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">{{ form.limit_amount.label }}</label>
+                            <div class="input-group fintech-input-group {% if form.limit_amount.errors %}is-invalid-group{% endif %}">
+                                <span class="input-group-text bg-light-soft border-end-0 text-muted px-3">
+                                    <i class="bi bi-wallet2"></i>
+                                </span>
+                                {% render_field form.limit_amount class="form-control form-control-fintech border-start-0 ps-2" %}
+                            </div>
+                            <div class="form-text fs-11 text-muted mt-1">Оставьте поле пустым, чтобы полностью отключить лимит</div>
+                            {% if form.limit_amount.errors %}
+                                <div class="text-danger small mt-1.5 fw-medium d-flex align-items-center gap-1 fs-12">
+                                    <i class="bi bi-exclamation-circle-fill"></i> {{ form.limit_amount.errors|first }}
                                 </div>
                             {% endif %}
                         </div>
@@ -86,4 +108,34 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const typeSelect = document.getElementById('id_category_type');
+        const limitWrapper = document.getElementById('limitFieldWrapper');
+
+        function toggleLimitField() {
+            if (!typeSelect || !limitWrapper) return;
+
+            if (typeSelect.value === 'income') {
+                limitWrapper.style.opacity = '0';
+                limitWrapper.style.pointerEvents = 'none';
+                setTimeout(() => {
+                    if(typeSelect.value === 'income') limitWrapper.style.display = 'none';
+                }, 200);
+            } else {
+                limitWrapper.style.display = 'block';
+                setTimeout(() => {
+                    limitWrapper.style.opacity = '1';
+                    limitWrapper.style.pointerEvents = 'auto';
+                }, 10);
+            }
+        }
+
+        if (typeSelect) {
+            typeSelect.addEventListener('change', toggleLimitField);
+            toggleLimitField(); // Проверка состояния при загрузке страницы
+        }
+    });
+</script>
 {% endblock %}

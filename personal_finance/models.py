@@ -65,6 +65,29 @@ class Category(TimeStampedModel):
         return f"{prefix} {self.name} ({self.get_category_type_display()})"
 
 
+class CategoryLimit(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="limits")
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="limits")
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Ежемесячный лимит"
+    )
+    is_active = models.BooleanField(default=True, verbose_name="Активен")
+
+    class Meta:
+        verbose_name = "Лимит по категории"
+        verbose_name_plural = "Лимиты по категориям"
+        # У одного пользователя может быть только один лимит на конкретную категорию
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'category'], name='unique_user_category_limit')
+        ]
+
+    def __str__(self):
+        return f"Лимит {self.amount} ₽ на {self.category.name} ({self.user.username})"
+
+
 class Wallet(TimeStampedModel):
     class WalletType(models.TextChoices):
         DEBET = "debet", "Дебетовый"

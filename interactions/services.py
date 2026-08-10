@@ -51,7 +51,7 @@ class CommentService:
                 NotificationsService.create_notification(
                     actor=user,
                     recipient=post_author,
-                    verb='оставил комментарий',
+                    verb='оставил комментарий на вашу статью',
                     content_obj=content_obj
                 )
 
@@ -62,7 +62,7 @@ class CommentService:
                         NotificationsService.create_notification(
                             actor=user,
                             recipient=parent_comment.author,
-                            verb='ответил на ваш комментарий',
+                            verb='ответил на ваш комментарий в статье',
                             content_obj=content_obj
                         )
                 except Comment.DoesNotExist:
