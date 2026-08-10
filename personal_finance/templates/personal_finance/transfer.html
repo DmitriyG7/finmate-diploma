@@ -1,90 +1,141 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load static %}
 {% load widget_tweaks %}
 
+{% block title %}Перевод между счетами{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
+<div class="container py-5 fintech-theme">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-sm border-0 rounded-3 p-4">
-                <div class="card-body p-4">
-                    <h3 class="card-title text-center mb-4 fw-bold">Перевод между счетами</h3>
+        <div class="col-lg-6 col-md-8 animate-fade-in-up">
+
+            <div class="mb-4">
+                <a href="{% url 'wallet_list' %}" class="text-secondary text-decoration-none fw-medium fs-14 d-inline-flex align-items-center gap-2 transition-all back-link-hover">
+                    <i class="bi bi-arrow-left fs-16"></i> Назад к счетам
+                </a>
+            </div>
+
+            <div class="card shadow-fintech border-0 rounded-4 overflow-hidden bg-white">
+                <div class="card-bg-decoration dec-form-1"></div>
+                <div class="card-bg-decoration dec-form-2"></div>
+
+                <div class="card-body p-4 p-md-5 position-relative z-index-1">
+
+                    <div class="text-center mb-5">
+                        <div class="icon-glow-primary mx-auto mb-3">
+                            <i class="bi bi-arrow-left-right text-primary fs-3"></i>
+                        </div>
+                        <h3 class="text-dark fw-bold mb-1 tracking-tight">Перевод между счетами</h3>
+                        <p class="text-muted small mb-0 fs-14">Мгновенное перемещение средств между вашими кошельками</p>
+                    </div>
 
                     <form method="post" novalidate>
                         {% csrf_token %}
 
-                        <!-- ОТКУДА СПИСАТЬ -->
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Откуда списать</label>
-                            <select name="from_wallet" class="form-select">
-                                {% if form.from_wallet.field.queryset %}
-                                    {% for wallet in form.from_wallet.field.queryset %}
-                                        <option value="{{ wallet.id }}"
-                                            {% if form.from_wallet.value|stringformat:"s" == wallet.id|stringformat:"s" %}selected{% endif %}>
-                                            {{ wallet.name }} ({{ wallet.balance|floatformat:2 }})
-                                        </option>
-                                    {% endfor %}
-                                    <option value="create_new">➕ Создать новый счёт</option>
-                                {% endif %}
-                            </select>
-                        </div>
-
-                        <!-- ИКОНКА РАЗДЕЛИТЕЛЯ -->
-                        <div class="text-center my-2">
-                            <i class="fas fa-exchange-alt text-primary fs-3"></i>
-                        </div>
-
-                        <!-- КУДА ЗАЧИСЛИТЬ -->
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Куда зачислить</label>
-                            <select name="to_wallet" class="form-select">
-                                {% if form.to_wallet.field.queryset %}
-                                    <option value="" disabled {% if not form.to_wallet.value %}selected{% endif %}>Выберите счёт</option>
-                                    {% for wallet in form.to_wallet.field.queryset %}
-                                        <option value="{{ wallet.id }}"
-                                            {% if form.to_wallet.value|stringformat:"s" == wallet.id|stringformat:"s" %}selected{% endif %}>
-                                            {{ wallet.name }} ({{ wallet.balance|floatformat:2 }})
-                                        </option>
-                                    {% endfor %}
-                                    <option value="create_new">➕ Создать новый счёт</option>
-                                {% endif %}
-                            </select>
-                            {% if form.to_wallet.errors %}
-                                <div class="text-danger small mt-1">{{ form.to_wallet.errors|first }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- ДАТА -->
-                        <div class="mb-3">
-                            <label class="form-label text-muted fw-semibold">Дата перевода</label>
-                            {{ form.date|add_class:"form-control" }}
-                            {% if form.date.errors %}
-                                <div class="text-danger small mt-1">{{ form.date.errors|first }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- СУММА -->
-                        <div class="mb-3">
-                                <label class="form-label fw-semibold">Сумма</label>
-                                {{ form.amount|add_class:"form-control" }}
-                            </div>
-                            {% if form.amount.errors %}
-                                <div class="text-danger small mt-1">{{ form.amount.errors|first }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- ОБЩИЕ ОШИБКИ -->
                         {% if form.non_field_errors %}
-                            <div class="alert alert-danger shadow-sm">
-                                {% for error in form.non_field_errors %}
-                                    {{ error }}
-                                {% endfor %}
+                            <div class="alert alert-danger border-0 rounded-3 fs-14 mb-4 d-flex align-items-center gap-2">
+                                <i class="bi bi-exclamation-octagon-fill fs-5"></i>
+                                <div>{% for error in form.non_field_errors %}{{ error }}{% endfor %}</div>
                             </div>
                         {% endif %}
 
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg shadow-sm">Подтвердить перевод</button>
-                            <a href="{% url 'wallet_list' %}" class="btn btn-outline-secondary">Отмена</a>
+                        <div class="mb-4">
+                            <label class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">Откуда списать</label>
+                            <div class="input-group fintech-input-group {% if form.from_wallet.errors %}is-invalid-group{% endif %}">
+                                <span class="input-group-text bg-light-soft border-end-0 text-muted px-3">
+                                    <i class="bi bi-credit-card-2-back-fill"></i>
+                                </span>
+                                <select name="from_wallet" class="form-select form-select-fintech border-start-0 ps-2">
+                                    {% if form.from_wallet.field.queryset %}
+                                        {% for wallet in form.from_wallet.field.queryset %}
+                                            <option value="{{ wallet.id }}"
+                                                {% if form.from_wallet.value|stringformat:"s" == wallet.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ wallet.name }} ({{ wallet.balance|floatformat:2 }})
+                                            </option>
+                                        {% endfor %}
+                                        <option value="create_new">➕ Создать новый счёт</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                            {% if form.from_wallet.errors %}
+                                <div class="text-danger small mt-1.5 fw-medium d-flex align-items-center gap-1 fs-12">
+                                    <i class="bi bi-exclamation-circle-fill"></i> {{ form.from_wallet.errors|first }}
+                                </div>
+                            {% endif %}
                         </div>
+
+                        <div class="text-center my-3">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle border shadow-sm" style="width: 40px; height: 40px;">
+                                <i class="bi bi-arrow-down-up text-primary fs-16"></i>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">Куда зачислить</label>
+                            <div class="input-group fintech-input-group {% if form.to_wallet.errors %}is-invalid-group{% endif %}">
+                                <span class="input-group-text bg-light-soft border-end-0 text-muted px-3">
+                                    <i class="bi bi-wallet2"></i>
+                                </span>
+                                <select name="to_wallet" class="form-select form-select-fintech border-start-0 ps-2">
+                                    {% if form.to_wallet.field.queryset %}
+                                        <option value="" disabled {% if not form.to_wallet.value %}selected{% endif %}>Выберите счёт</option>
+                                        {% for wallet in form.to_wallet.field.queryset %}
+                                            <option value="{{ wallet.id }}"
+                                                {% if form.to_wallet.value|stringformat:"s" == wallet.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ wallet.name }} ({{ wallet.balance|floatformat:2 }})
+                                            </option>
+                                        {% endfor %}
+                                        <option value="create_new">➕ Создать новый счёт</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                            {% if form.to_wallet.errors %}
+                                <div class="text-danger small mt-1.5 fw-medium d-flex align-items-center gap-1 fs-12">
+                                    <i class="bi bi-exclamation-circle-fill"></i> {{ form.to_wallet.errors|first }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row g-4 mb-5">
+                            <div class="col-md-6">
+                                <label class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">Дата перевода</label>
+                                <div class="input-group fintech-input-group {% if form.date.errors %}is-invalid-group{% endif %}">
+                                    <span class="input-group-text bg-light-soft border-end-0 text-muted px-3">
+                                        <i class="bi bi-calendar3"></i>
+                                    </span>
+                                    {{ form.date|add_class:"form-control form-control-fintech border-start-0 ps-2 datepicker" }}
+                                </div>
+                                {% if form.date.errors %}
+                                    <div class="text-danger small mt-1.5 fw-medium d-flex align-items-center gap-1 fs-12">
+                                        <i class="bi bi-exclamation-circle-fill"></i> {{ form.date.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label text-muted fs-12 fw-bold text-uppercase tracking-wider mb-2">Сумма перевода</label>
+                                <div class="input-group fintech-input-group {% if form.amount.errors %}is-invalid-group{% endif %}">
+                                    <span class="input-group-text bg-light-soft border-end-0 text-muted px-3 fw-bold fs-15">₽</span>
+                                    {{ form.amount|add_class:"form-control form-control-fintech border-start-0 border-end-0 ps-2 fw-bold fs-16"|attr:"placeholder:0.00" }}
+                                    <span class="input-group-text bg-light-soft border-start-0 text-muted-light fs-12 px-3">RUB</span>
+                                </div>
+                                {% if form.amount.errors %}
+                                    <div class="text-danger small mt-1.5 fw-medium d-flex align-items-center gap-1 fs-12">
+                                        <i class="bi bi-exclamation-circle-fill"></i> {{ form.amount.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-column gap-2">
+                            <button type="submit" class="btn btn-fintech-primary btn-lg py-3 rounded-3 shadow-lg fw-bold text-white transition-all fs-16">
+                                <i class="bi bi-check-circle-fill me-2 fs-15"></i> Подтвердить перевод
+                            </button>
+                            <a href="{% url 'wallet_list' %}" class="btn btn-fintech-outline py-2.5 rounded-3 fw-semibold transition-all text-secondary text-center fs-14">
+                                Отмена
+                            </a>
+                        </div>
+
                     </form>
                 </div>
             </div>
@@ -110,19 +161,4 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 </script>
-{% endblock %}
-
-{% block extra_css %}
-<style>
-.card { border: none; }
-.form-label { color: #212529; } /* Более темный цвет как во 2 форме */
-.form-control:focus, .form-select:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1);
-}
-/* Чтобы сумма и дата в одной строке смотрелись аккуратно */
-.form-control, .form-select {
-    padding: 0.5rem 0.75rem;
-}
-</style>
 {% endblock %}

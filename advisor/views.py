@@ -21,6 +21,7 @@ class SavingGoalListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         created_risk_notifications = AdvisorService.notify_goal_risks(user=self.request.user)
+        # created_limit_notification = AdvisorService.notify_limit_control(user=self.request.user)
         if created_risk_notifications:
             messages.warning(
                 self.request,
@@ -72,13 +73,18 @@ class SavingGoalDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         advice = AdvisorService.build_goal_advice(user=self.request.user, goal=self.object)
-        expense_cut_percent = self.request.GET.get("expense_cut_percent", 0)
-        income_raise_percent = self.request.GET.get("income_raise_percent", 0)
+
+        # ИЗМЕНЕНИЕ: Извлекаем фиксированные суммы из GET-запроса вместо процентов
+        expense_cut_amount = self.request.GET.get("expense_cut_amount", "0.00")
+        income_raise_amount = self.request.GET.get("income_raise_amount", "0.00")
+
+        # Передаем обновленные именованные аргументы в метод сервиса
         scenario = AdvisorService.build_what_if(
             advice=advice,
-            expense_cut_percent=expense_cut_percent,
-            income_raise_percent=income_raise_percent,
+            expense_cut_amount=expense_cut_amount,
+            income_raise_amount=income_raise_amount,
         )
+
         context["advice"] = advice
         context["scenario"] = scenario
         context["contribution_form"] = GoalContributionForm(user=self.request.user)
@@ -97,7 +103,6 @@ class GoalContributionCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         goal = get_object_or_404(SavingGoal, pk=self.kwargs["pk"], user=self.request.user)
-
         cd = form.cleaned_data
 
         try:
@@ -110,7 +115,6 @@ class GoalContributionCreateView(LoginRequiredMixin, CreateView):
                 date=cd["date"]
             )
             messages.success(self.request, "Пополнение успешно добавлено, деньги списаны с кошелька.")
-
             return redirect(self.get_success_url())
 
         except ValidationError as e:

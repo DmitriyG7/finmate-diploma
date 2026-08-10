@@ -375,10 +375,10 @@ class FinanceService:
             del_wallet.refresh_from_db()
             return del_wallet
 
-
     @staticmethod
     def create_category(*, user, name, category_type):
         with transaction.atomic():
+            # Используем менеджер for_user, чтобы не плодить дубликаты системных имен
             if Category.objects.for_user(user=user).filter(name=name, category_type=category_type).exists():
                 raise ValidationError(f"Категория '{name}' уже существует.")
 
@@ -392,15 +392,27 @@ class FinanceService:
     @staticmethod
     def update_category(*, category_obj, user, name=None, new_type=None):
         with transaction.atomic():
-            category = (Category.objects.select_for_update()
-                        .filter(id=category_obj.id, user=user, is_active=True).first())
+            # 1. ИСПРАВЛЕНО: ищем через for_user, чтобы подтянуть и системные категории тоже
+            category = (Category.objects.for_user(user=user)
+                        .select_for_update()
+                        .filter(id=category_obj.id, is_active=True)
+                        .first())
 
             if not category:
                 raise ValidationError("Категория не найдена или недоступна.")
 
+            # 2. ИСПРАВЛЕНО: Умная обработка системных категорий
             if category.user is None:
-                raise ValidationError("Нельзя редактировать системные категории.")
+                # Если имя или тип РЕАЛЬНО отличаются от системных — это попытка взлома/ошибки
+                if (name is not None and name != category.name) or (
+                        new_type is not None and new_type != category.category_type):
+                    raise ValidationError("Нельзя изменять название или тип системных категорий.")
 
+                # Если данные те же (пришли из disabled полей формы), просто возвращаем её.
+                # Изменением лимита займется контроллер.
+                return category
+
+            # 3. Логика для обычных пользовательских категорий
             target_name = name if name is not None else category.name
             target_type = new_type if new_type is not None else category.category_type
 
@@ -416,8 +428,6 @@ class FinanceService:
 
             category.name = target_name
             category.category_type = target_type
-
-            # .save() вызовет сигналы и обновит auto_now поля, если они есть
             category.save()
 
             return category
@@ -425,14 +435,19 @@ class FinanceService:
     @staticmethod
     def delete_category(*, category_obj, user):
         with transaction.atomic():
-            category = Category.objects.select_for_update().filter(id=category_obj.id, user=user, is_active=True).first()
+            # ИСПРАВЛЕНО: для единообразия и безопасности тоже используем for_user
+            category = (Category.objects.for_user(user=user)
+                        .select_for_update()
+                        .filter(id=category_obj.id, is_active=True)
+                        .first())
 
             if not category:
-                raise ValidationError("Категория не найдена или уже удалена")
+                raise ValidationError("Категория не найдена или уже удалена.")
 
+            # Системную категорию пользователь удалить не сможет ни при каких условиях
             if category.user is None:
-                raise ValidationError("Нельзя удалить системную категорию")
+                raise ValidationError("Нельзя удалить системную категорию.")
 
-            category.is_active=False
+            category.is_active = False
             category.save()
             return category

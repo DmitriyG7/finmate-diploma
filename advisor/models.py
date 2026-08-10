@@ -110,7 +110,7 @@ class GoalContribution(models.Model):
     )
     date = models.DateField(default=timezone.now, verbose_name="Дата пополнения")
     wallet = models.ForeignKey("personal_finance.Wallet", on_delete=models.PROTECT,
-                               related_name="goal_contributions", null=False, verbose_name="Счет списания")
+                               related_name="goal_contributions", null=True, blank=True, verbose_name="Счет списания")
     comment = models.CharField(max_length=255, blank=True, verbose_name="Комментарий")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Создано")
 

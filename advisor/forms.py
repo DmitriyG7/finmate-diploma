@@ -48,4 +48,4 @@ class GoalContributionForm(forms.ModelForm):
 
         if user:
             self.fields["wallet"].queryset = Wallet.objects.filter(user=user, is_active=True)
-        self.fields["wallet"].empty_label = "Выберите кошелёк для списания"
+        self.fields["wallet"].empty_label = "Выберите счет для списания"

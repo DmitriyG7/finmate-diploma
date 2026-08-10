@@ -1,0 +1,130 @@
+/* ==========================================================================
+   FINTECH PREMIUM THEME (FinMate Global Styles)
+   ========================================================================== */
+
+:root {
+    --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    --primary-gradient-hover: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+    --bg-main: #f8fafc;
+    --text-main: #1e293b;
+    --border-color: #e2e8f0;
+}
+
+body {
+    background-color: var(--bg-main) !important;
+    color: var(--text-main);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* --- Вспомогательные утилиты для шрифтов и отступов --- */
+.fs-12 { font-size: 12px; }
+.fs-13 { font-size: 13px; }
+.fs-14 { font-size: 14px; }
+.fs-15 { font-size: 15px; }
+.fs-16 { font-size: 16px; }
+.mt-1\.5 { margin-top: 6px; }
+.pt-2\.5 { padding-top: 10px !important; }
+.tracking-wider { letter-spacing: 0.05em; }
+.tracking-tight { letter-spacing: -0.02em; }
+.z-index-1 { z-index: 1; }
+.bg-light-soft { background-color: #fcfcfd; }
+.text-muted-light { color: #94a3b8; }
+
+/* --- Глобальные анимации --- */
+.transition-all { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+@keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(15px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* --- Карточки и декоративные элементы --- */
+.shadow-fintech { box-shadow: 0 10px 40px rgba(15, 23, 42, 0.04) !important; }
+.card-bg-decoration { position: absolute; border-radius: 50%; filter: blur(50px); opacity: 0.15; z-index: 0; }
+.dec-form-1 { width: 140px; height: 140px; background: #6366f1; top: -30px; left: -40px; }
+.dec-form-2 { width: 180px; height: 180px; background: #38bdf8; bottom: -50px; right: -50px; }
+
+.icon-glow-primary {
+    display: flex; align-items: center; justify-content: center;
+    width: 52px; height: 52px; border-radius: 14px;
+    background: rgba(79, 70, 229, 0.08); color: #4f46e5;
+}
+
+/* --- Премиум Кнопки --- */
+.btn-fintech-primary {
+    background: var(--primary-gradient);
+    border: none;
+}
+.btn-fintech-primary:hover {
+    background: var(--primary-gradient-hover);
+    box-shadow: 0 8px 25px rgba(79, 70, 229, 0.25) !important;
+    transform: translateY(-2px);
+}
+.btn-fintech-primary:active { transform: translateY(0); }
+
+.btn-fintech-outline {
+    border: 1px solid var(--border-color);
+    color: #64748b;
+    background: white;
+}
+.btn-fintech-outline:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+}
+
+/* --- Поля ввода и Группы (Селекты, Инпуты) --- */
+.fintech-input-group {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: #fff;
+    transition: all 0.25s ease;
+    overflow: hidden;
+}
+.fintech-input-group .input-group-text {
+    border: none;
+    color: #64748b;
+}
+.form-control-fintech, .form-select-fintech {
+    border: none !important;
+    background-color: transparent !important;
+    color: #334155;
+    padding: 0.65rem 1rem 0.65rem 0.25rem;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: none !important;
+}
+.form-control-fintech::placeholder { color: #cbd5e1; }
+.fintech-input-group:focus-within {
+    border-color: #818cf8;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.08);
+}
+.is-invalid-group { border-color: #f87171 !important; }
+.is-invalid-group:focus-within { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08) !important; }
+
+/* --- Сегментированные переключатели (Расход/Доход) --- */
+.fintech-segmented-control {
+    display: flex;
+    background-color: #f1f5f9;
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+.segmented-radio { display: none; }
+.segmented-label {
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border-radius: 9px; color: #64748b;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none; margin-bottom: 0;
+}
+.segmented-radio:checked + .segmented-label {
+    background-color: #ffffff;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+#type_income:checked + .segmented-label { color: #10b981; }
+#type_expense:checked + .segmented-label { color: #ef4444; }
+#type_transfer:checked + .segmented-label { color: #6366f1; }

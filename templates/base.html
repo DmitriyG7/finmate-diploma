@@ -6,27 +6,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if title %} {{ title }} {% else %} FinMate — Твой личный финансовый помощник {% endif %}</title>
+    <title>{% if title %} {{ title }} {% else %} FinMate — Твой личный financial помощник {% endif %}</title>
 
-    <!-- Иконки: Font Awesome + Bootstrap Icons (добавили для новых шаблонов) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
-    <!-- Bootstrap 5.3.2 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- Google Fonts (добавим немного стиля) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Свои стили -->
     <link rel="stylesheet" href="{% static 'users/css/profile.css' %}">
     <link rel="stylesheet" href="{% static 'personal_finance/css/styles.css' %}">
 
-    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="{% static 'css/fintech-theme.css' %}">
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <!-- Flatpickr JS -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <!-- Локализация на русский -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 
@@ -82,7 +79,6 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Навигация -->
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top mb-4 shadow-sm">
         <div class="container">
             <a class="navbar-brand fw-bold fs-4" href="{% url 'home' %}">
@@ -121,7 +117,6 @@
                                href="{% url 'advisor:goal_list' %}">Советчик</a>
                         </li>
 
-                        <!-- Разделитель для мобилок -->
                         <div class="vr d-none d-lg-block mx-3 text-white-50"></div>
 
                         <li class="nav-item dropdown ms-lg-2">
@@ -172,20 +167,17 @@
         </div>
     </nav>
 
-    <!-- Основной контент -->
     <main class="container pb-5">
         {% block content %}
         {% endblock %}
     </main>
 
-    <!-- Простой футер -->
     <footer class="footer py-3 mt-auto">
         <div class="container text-center text-muted small">
             &copy; 2026 FinMate Pet Project. Сделано с умом.
         </div>
     </footer>
 
-    <!-- Контейнер уведомлений -->
     <div class="toast-container" id="toastContainer">
         {% for message in messages %}
             <div class="toast custom-toast" role="alert" aria-live="assertive" aria-atomic="true">
@@ -209,7 +201,6 @@
         {% endfor %}
     </div>
 
-    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/inputmask@5.0.8/dist/inputmask.min.js"></script>
     <script src="{% static 'personal_finance/js/masks.js' %}"></script>
@@ -230,14 +221,12 @@
             };
 
             // Инициализируем ВСЕ элементы с классом .datepicker
-            // (Этот класс мы добавим в формах в forms.py)
             flatpickr(".datepicker", fpConfig);
 
-            // Инициализируем поля в фильтрах (по именам, как у тебя уже было)
+            // Инициализируем поля в фильтрах
             flatpickr("input[name='date_from']", fpConfig);
             flatpickr("input[name='date_to']", fpConfig);
         });
-
     </script>
 
     {% block extra_js %}{% endblock %}

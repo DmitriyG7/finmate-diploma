@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.core.paginator import Paginator
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.views.generic import DetailView, CreateView, UpdateView, DeleteView, ListView, FormView, View
 from django.urls import reverse_lazy
@@ -12,8 +13,8 @@ from django.db import models
 
 from .forms import TransactionUserForm, AddTransactionForm, UpdateTransactionForm, GraphicForm, CreateWalletForm, \
     UpdateWalletForm, TransferForm, CategoryForm, WalletShareInviteForm
-from .models import PersonalTransaction, Category, Wallet, WalletShareInvite, WalletMember, OperationType
-from django.db.models import Sum, Count, Avg, Q
+from .models import PersonalTransaction, Category, CategoryLimit, Wallet, WalletShareInvite, WalletMember, OperationType, CategoryLimit
+from django.db.models import Sum, Count, Avg, Q, Subquery, Value, OuterRef
 import json
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
@@ -30,43 +31,56 @@ from notifications.services import NotificationsService
 @login_required
 def transaction_list(request):
     relevant_post = None
+    today = timezone.now().date()
 
-    form = TransactionUserForm(data=request.GET or None, user=request.user)
+    filter_params = request.GET.copy()
+    if 'period' not in filter_params:
+        filter_params['period'] = 'month'
 
+    if 'wallet' not in filter_params:
+        default_wallet = Wallet.objects.filter(user=request.user, is_default=True, is_active=True).first()
+        if default_wallet:
+            filter_params['wallet'] = default_wallet.id
+
+    form = TransactionUserForm(data=filter_params, user=request.user)
     accessible_wallets = Wallet.accessible_for_user(request.user)
-    queryset = PersonalTransaction.objects.filter(wallet__in=accessible_wallets)\
+
+    queryset = PersonalTransaction.objects.filter(wallet__in=accessible_wallets) \
         .select_related("category", "wallet", "performed_by").order_by("-date", "-id")
 
-    selected_wallet = None
+    totals_queryset = PersonalTransaction.objects.filter(wallet__in=accessible_wallets)
+
     if form.is_valid():
         cd = form.cleaned_data
-        selected_wallet = cd.get("wallet")
-        today = timezone.now().date()
 
-        # Обработка периода
         if cd["period"] == "today":
             queryset = queryset.filter(date=today)
+            totals_queryset = totals_queryset.filter(date=today)
 
         elif cd["period"] == "week":
             week_ago = today - timedelta(days=7)
             queryset = queryset.filter(date__gte=week_ago, date__lte=today)
+            totals_queryset = totals_queryset.filter(date__gte=week_ago, date__lte=today)
 
         elif cd["period"] == "month":
-            start_date = today.replace(day=1) # 1-е число текущего месяца
+            start_date = today.replace(day=1)
             queryset = queryset.filter(date__gte=start_date, date__lte=today)
+            totals_queryset = totals_queryset.filter(date__gte=start_date, date__lte=today)
 
         elif cd["period"] == "last_month":
             first_day_this_month = today.replace(day=1)
             last_day_last_month = first_day_this_month - timedelta(days=1)
             start_date = last_day_last_month.replace(day=1)
             queryset = queryset.filter(date__gte=start_date, date__lte=last_day_last_month)
+            totals_queryset = totals_queryset.filter(date__gte=start_date, date__lte=last_day_last_month)
 
-        elif cd["period"] == "custom":
-            if cd.get("date_from") and cd.get("date_to"):
-                queryset = queryset.filter(
-                    date__gte=cd["date_from"],
-                    date__lte=cd["date_to"]
-                )
+        elif cd["period"] == "custom" and cd.get("date_from") and cd.get("date_to"):
+            queryset = queryset.filter(date__gte=cd["date_from"], date__lte=cd["date_to"])
+            totals_queryset = totals_queryset.filter(date__gte=cd["date_from"], date__lte=cd["date_to"])
+
+        if cd.get("wallet"):
+            queryset = queryset.filter(wallet=cd["wallet"])
+            totals_queryset = totals_queryset.filter(wallet=cd["wallet"])
 
         if cd["operation_type"]:
             queryset = queryset.filter(operation_type=cd["operation_type"])
@@ -74,32 +88,15 @@ def transaction_list(request):
         categories = cd.get("category")
         if categories:
             queryset = queryset.filter(category__in=categories)
-            first_category = categories[0]
-
-            relevant_post = Post.objects.verified().filter(
-                linked_category=first_category
-            ).first()
-
-        if cd.get("wallet"):
-            queryset = queryset.filter(wallet=cd["wallet"])
-
-    if 'wallet' not in request.GET:
-        default_wallet = Wallet.objects.filter(user=request.user, is_default=True, is_active=True).first()
-        if default_wallet:
-            queryset = queryset.filter(wallet=default_wallet)
-            form.initial['wallet'] = default_wallet.id
-        elif selected_wallet:
-            queryset = queryset.filter(wallet=selected_wallet)
+            relevant_post = Post.objects.verified().filter(linked_category=categories[0]).first()
 
     paginator = Paginator(queryset, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     daily_map = {}
-
     for transaction in page_obj:
         tx_date = transaction.date
-
         if tx_date not in daily_map:
             daily_map[tx_date] = {
                 "date": tx_date,
@@ -107,20 +104,17 @@ def transaction_list(request):
                 "expense": Decimal("0.00"),
                 "transactions": []
             }
-
         day_data = daily_map[tx_date]
-
         day_data["transactions"].append(transaction)
 
         if transaction.operation_type == OperationType.INCOME:
             day_data["income"] += transaction.total
-
         elif transaction.operation_type == OperationType.EXPENSE:
             day_data["expense"] += transaction.total
 
     grouped_transactions = list(daily_map.values())
 
-    totals = queryset.aggregate(
+    totals = totals_queryset.aggregate(
         total_income=Sum('total', filter=Q(operation_type=OperationType.INCOME)),
         total_expense=Sum('total', filter=Q(operation_type=OperationType.EXPENSE))
     )
@@ -140,7 +134,7 @@ def transaction_list(request):
         "transactions_grouped": grouped_transactions,
         "user_wallets": accessible_wallets,
 
-        # Дашборд
+        # Дашборд теперь всегда показывает корректные данные за весь период
         "total_balance": total_balance,
         "period_income": period_income,
         "period_expense": period_expense,
@@ -257,46 +251,114 @@ class DeleteTransaction(LoginRequiredMixin, DeleteView):
 
 @login_required
 def analytics_view(request):
-    form = GraphicForm(user=request.user, data=request.GET or None)
-    queryset = (PersonalTransaction.objects.filter(user=request.user)
-                .select_related("category").order_by("-date", "-id"))
+    filter_params = request.GET.copy()
+
+    if 'period' not in filter_params:
+        filter_params['period'] = 'month'
+
+    if 'operation_type' not in filter_params:
+        filter_params['operation_type'] = 'expense'
+
+    if 'wallet' not in filter_params:
+        default_wallet = Wallet.objects.filter(user=request.user, is_active=True, is_default=True).first()
+        if default_wallet:
+            filter_params['wallet'] = default_wallet.id
+
+    form = GraphicForm(user=request.user, data=filter_params)
+    accessible_wallets = Wallet.accessible_for_user(request.user)
+
     chart_data = []
+    chart_timeline = []
     selected_categories_ids = []
 
     metrics = {
         'total_sum': 0,
         'total_count': 0,
         'avg_check': 0,
-        'top_category': 0
+        'top_category': None,
+        'sum_trend': None,
+        'count_trend': None,
+        'avg_check_trend': None,
+        'sum_trend_color': "",
+        'count_trend_color': "",
+        'avg_trend_color': ""
     }
+
+    # Инициализируем пустой базовый кверисет
+    queryset = PersonalTransaction.objects.filter(wallet__in=accessible_wallets)
 
     if form.is_valid():
         cd = form.cleaned_data
         today = timezone.now().date()
 
-        if cd["period"] == "day":
-            queryset = queryset.filter(date=today)
+        # Точная синхронизация периодов с вашей transaction_list + расчет прошлых периодов для трендов
+        if cd["period"] in ["day", "today"]:
+            start_date = end_date = today
+            prev_start_date = prev_end_date = today - timedelta(days=1)
+
         elif cd["period"] == "week":
             week_ago = today - timedelta(days=7)
-            queryset = queryset.filter(date__gte=week_ago, date__lte=today)
+            start_date = week_ago
+            end_date = today
+            # Прошлая неделя для сравнения
+            prev_end_date = start_date - timedelta(days=1)
+            prev_start_date = prev_end_date - timedelta(days=7)
+
         elif cd["period"] == "month":
-            month_ago = today - timedelta(days=30)
-            queryset = queryset.filter(date__gte=month_ago, date__lte=today)
-        elif cd["period"] == "custom":
-            queryset = queryset.filter(
-                date__gte=cd["date_from"],
-                date__lte=cd["date_to"]
-            )
+            start_date = today.replace(day=1)
+            end_date = today
+            # Прошлый месяц (текущий срез MTD для честного сравнения)
+            last_day_last_month = start_date - timedelta(days=1)
+            prev_start_date = last_day_last_month.replace(day=1)
+            try:
+                prev_end_date = prev_start_date.replace(day=today.day)
+            except ValueError:
+                prev_end_date = last_day_last_month
+
+        elif cd["period"] == "last_month":
+            # Чистый прошлый календарный месяц из вашей transaction_list
+            first_day_this_month = today.replace(day=1)
+            last_day_last_month = first_day_this_month - timedelta(days=1)
+            start_date = last_day_last_month.replace(day=1)
+            end_date = last_day_last_month
+
+            # Месяц, предшествующий прошлому (для тренда)
+            last_day_month_before = start_date - timedelta(days=1)
+            prev_start_date = last_day_month_before.replace(day=1)
+            prev_end_date = last_day_month_before
+
+        elif cd["period"] == "custom" and cd.get("date_from") and cd.get("date_to"):
+            start_date = cd["date_from"]
+            end_date = cd["date_to"]
+            # Сдвиг назад на такое же количество дней для кастомного периода
+            delta = (end_date - start_date).days + 1
+            prev_end_date = start_date - timedelta(days=1)
+            prev_start_date = prev_end_date - timedelta(days=max(0, delta - 1))
+        else:
+            # Фолбэк, если кастомные даты не заполнены
+            start_date = today.replace(day=1)
+            end_date = today
+            prev_start_date = prev_end_date = None
+
+        # Применяем остальные фильтры к базовому набору данных
+        if cd.get("wallet"):
+            queryset = queryset.filter(wallet=cd["wallet"])
 
         if cd["operation_type"]:
             queryset = queryset.filter(operation_type=cd["operation_type"])
 
-        active_categories = list(cd.get("category", []))
-        selected_categories_ids = [cat.id for cat in active_categories]
-
-        if selected_categories_ids:
+        active_categories = cd.get("category", [])
+        if active_categories:
+            selected_categories_ids = [cat.id for cat in active_categories]
             queryset = queryset.filter(category__in=selected_categories_ids)
 
+        # Разделяем на текущий кверисет и исторический (для трендов)
+        past_queryset = queryset.filter(date__gte=prev_start_date, date__lte=prev_end_date) if prev_start_date else None
+        queryset = queryset.filter(date__gte=start_date, date__lte=end_date).select_related("category",
+                                                                                            "wallet").order_by("-date",
+                                                                                                               "-id")
+
+        # Агрегации
         stats = queryset.aggregate(
             total_sum=Sum('total'),
             total_count=Count('id'),
@@ -307,14 +369,45 @@ def analytics_view(request):
         metrics['total_count'] = stats['total_count'] or 0
         metrics['avg_check'] = stats['avg_check'] or 0
 
-        aggregation_data = (
+        # Считаем тренды, если есть исторические данные
+        if past_queryset:
+            past_stats = past_queryset.aggregate(
+                total_sum=Sum('total'),
+                total_count=Count('id'),
+                avg_check=Avg('total')
+            )
+
+            def calc_trend(current, past):
+                if Atlantic_past := (past or 0):
+                    return float(((current - Atlantic_past) / Atlantic_past) * 100)
+                return None
+
+            metrics['sum_trend'] = calc_trend(metrics['total_sum'], past_stats['total_sum'])
+            metrics['count_trend'] = calc_trend(metrics['total_count'], past_stats['total_count'])
+            metrics['avg_check_trend'] = calc_trend(metrics['avg_check'], past_stats['avg_check'])
+
+            # Подсветка трендов (Расходы вверх — плохо/red, доходы вверх — хорошо/green)
+            is_expense = cd.get("operation_type") == "expense"
+
+            def get_trend_color(trend_val):
+                if trend_val is None or trend_val == 0: return "text-muted"
+                if is_expense:
+                    return "text-danger" if trend_val > 0 else "text-success"
+                return "text-success" if trend_val > 0 else "text-danger"
+
+            metrics['count_trend_color'] = get_trend_color(metrics['count_trend'])
+            metrics['avg_trend_color'] = get_trend_color(metrics['avg_check_trend'])
+            metrics['sum_trend_color'] = "text-white opacity-85"
+
+        # Данные для графиков
+        aggregation_data = list(
             queryset
             .values("category__name")
             .annotate(total=Sum("total"))
             .order_by("-total")
         )
 
-        if aggregation_data.exists():
+        if aggregation_data:
             metrics['top_category'] = aggregation_data[0]
 
         chart_data = [
@@ -322,10 +415,24 @@ def analytics_view(request):
             for item in aggregation_data
         ]
 
+        # Данные для линейного графика хронологии
+        timeline_data = list(
+            queryset
+            .order_by("date")
+            .values("date")
+            .annotate(total=Sum("total"))
+        )
+
+        chart_timeline = [
+            {"date": item["date"].strftime("%d.%m"), "total": float(item["total"] or 0)}
+            for item in timeline_data
+        ]
+
     context = {
         'user': request.user,
         'user_transactions': queryset,
         'chart_data': json.dumps(chart_data),
+        'chart_timeline': json.dumps(chart_timeline),  # Теперь хронология гарантированно передается в JSON
         'selected_category_ids': selected_categories_ids,
         'form': form,
         'metrics': metrics
@@ -428,6 +535,8 @@ class UserWalletsList(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         qs = (Wallet.accessible_for_user(self.request.user)
+        .select_related('user')
+        .prefetch_related('memberships__user')
         .order_by('-is_default', 'name'))
         return qs
 
@@ -483,7 +592,7 @@ class WalletShareInviteCreateView(LoginRequiredMixin, FormView):
         NotificationsService.create_notification(
             actor=self.request.user,
             recipient=target_user,
-            verb=f"приглашает вас разделить счет '{self.wallet.name}'",
+            verb=f"приглашает вас разделить счет «{self.wallet.name}»",
             content_obj=invite,
         )
         messages.success(self.request, "Приглашение отправлено.")
@@ -574,13 +683,62 @@ class CategoryListView(LoginRequiredMixin, ListView, ProcessFormView):
     context_object_name = 'categories'
 
     def get_queryset(self):
-        return Category.objects.for_user(user=self.request.user).annotate(
+        user = self.request.user
+        today = timezone.now().date()
+        first_day_of_month = today.replace(day=1)
+
+        # 1. Подзапрос на получение суммы лимита пользователя для конкретной категории
+        limit_subquery = CategoryLimit.objects.filter(
+            user=user,
+            category=OuterRef('pk'),
+            is_active=True
+        ).values('amount')[:1]
+
+        # 2. Подзапрос на сумму расходов по этой категории за ТЕКУЩИЙ месяц
+        spent_subquery = PersonalTransaction.objects.filter(
+            user=user,
+            category=OuterRef('pk'),
+            operation_type=OperationType.EXPENSE,
+            date__gte=first_day_of_month,
+            date__lte=today
+        ).values('category').annotate(total=Sum('total')).values('total')[:1]
+
+        # 3. Основной запрос с аннотациями и явным указанием типов для PostgreSQL
+        decimal_field = models.DecimalField(max_digits=12, decimal_places=2)
+
+        queryset = Category.objects.for_user(user=user).annotate(
             transaction_count=Count(
                 'category_transactions',
                 filter=~models.Q(category_transactions__operation_type='transfer') &
-                models.Q(category_transactions__user=self.request.user)
+                       models.Q(category_transactions__user=user)
+            ),
+            # Явно передаем output_field, чтобы у СУБД не ехали типы
+            limit_amount=Coalesce(
+                Subquery(limit_subquery),
+                Value(Decimal('0.00'), output_field=decimal_field)
+            ),
+            spent_this_month=Coalesce(
+                Subquery(spent_subquery),
+                Value(Decimal('0.00'), output_field=decimal_field)
             )
-        ).order_by('category_type', 'name')
+        ).order_by('-user_id', 'category_type', 'name')
+
+        # 4. Вычисляем динамические метрики для CSS-анимаций и прогресс-баров в шаблоне
+        categories_list = list(queryset)  # Оцениваем кверисет в список
+
+        for cat in categories_list:
+            if cat.limit_amount > 0:
+                # Считаем процент утилизации лимита (но не более 100%, чтобы не ломать верстку бара)
+                cat.limit_progress = min(100, int((cat.spent_this_month / cat.limit_amount) * 100))
+                # Выставляем флаги критичности для изменения цвета (success/warning/danger)
+                cat.is_limit_warning = 85 <= cat.limit_progress < 100
+                cat.is_limit_danger = cat.limit_progress >= 100
+            else:
+                cat.limit_progress = 0
+                cat.is_limit_warning = False
+                cat.is_limit_danger = False
+
+        return categories_list
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -593,13 +751,23 @@ class CategoryListView(LoginRequiredMixin, ListView, ProcessFormView):
 
         if form.is_valid():
             try:
-                FinanceService.create_category(
+                # 1. Создаем категорию через твой сервис
+                category = FinanceService.create_category(
                     user=request.user,
                     name=form.cleaned_data['name'],
                     category_type=form.cleaned_data['category_type']
                 )
+
+                # 2. Перехватываем лимит и сохраняем его в БД
+                limit_val = form.cleaned_data.get('limit_amount')
+                if limit_val and form.cleaned_data['category_type'] == 'expense':
+                    CategoryLimit.objects.update_or_create(
+                        user=request.user,
+                        category=category,
+                        defaults={'amount': limit_val, 'is_active': True}
+                    )
+
                 messages.success(request, "Категория успешно добавлена!")
-                # Редирект на ту же страницу очищает POST-данные
                 return redirect('category_list')
             except ValidationError as e:
                 form.add_error(None, e.message)
@@ -620,22 +788,48 @@ class CategoryUpdateView(LoginRequiredMixin, UpdateView):
         return kwargs
 
     def get_queryset(self):
-        return Category.objects.filter(user=self.request.user, is_active=True)
+        # 1. ИСПРАВЛЕНО: используем for_user, чтобы юзер мог получить доступ
+        # к системным категориям для настройки лимитов
+        return Category.objects.for_user(user=self.request.user).filter(is_active=True)
 
     def form_valid(self, form):
         cd = form.cleaned_data
+        category = self.object  # Текущая редактируемая категория
 
         try:
+            # 2. Обновляем базовые поля категории через сервис
+            # (внутри сервиса должна быть проверка: если category.user Is Null, то не менять name и type)
             FinanceService.update_category(
-                category_obj=self.object,
+                category_obj=category,
                 user=self.request.user,
                 name=cd.get('name'),
                 new_type=cd.get('category_type')
             )
+
+            limit_val = cd.get('limit_amount')
+
+            # Берем тип из объекта, так как для системных категорий поле на форме задизейблено
+            if category.category_type == 'expense':
+                if limit_val:
+                    # Если лимит указан — создаем или обновляем его
+                    CategoryLimit.objects.update_or_create(
+                        user=self.request.user,
+                        category=category,
+                        defaults={'amount': limit_val, 'is_active': True}
+                    )
+                else:
+                    # Если пользователь стер лимит (сделал поле пустым) — деактивируем текущий лимит
+                    CategoryLimit.objects.filter(
+                        user=self.request.user,
+                        category=category
+                    ).update(is_active=False)
+
             messages.success(self.request, "Категория успешно изменена!")
             return redirect(self.success_url)
+
         except ValidationError as e:
-            messages.error(self.request, str(e))
+            # Вместо messages лучше вешать ошибку на форму, чтобы юзер видел её в контексте страницы
+            form.add_error(None, e.message)
             return self.form_invalid(form)
         except Exception as e:
             form.add_error(None, f"Ошибка операции: {str(e)}")

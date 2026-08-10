@@ -29,8 +29,12 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-key-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", True)
 
 # ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if h.strip()]
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,primer-strongly-chowtime.ngrok-free.dev").split(",") if h.strip()]
 
+# CSRF_TRUSTED_ORIGINS = [
+#     'https://primer-strongly-chowtime.ngrok-free.dev',
+#     'https://*.ngrok-free.dev'  # Эта строка спасет, если поддомен ngrok изменится при перезапуске
+# ]
 # Application definition
 
 INSTALLED_APPS = [
@@ -40,6 +44,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
+    'django_extensions',
     'users',
     'personal_finance',
     'groups',

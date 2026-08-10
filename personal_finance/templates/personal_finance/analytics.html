@@ -4,153 +4,234 @@
 {% block title %}Аналитика — {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-4 animate-fade-in-up">
     <div class="d-flex justify-content-between align-items-center mb-4 px-3">
-        <h2 class="text-primary mb-0"><i class="bi bi-pie-chart-fill"></i> Аналитика финансов</h2>
-        <div class="btn-group shadow-sm" role="group">
-            <button type="button" class="btn btn-outline-primary" id="bar-btn">
+        <div>
+            <h2 class="text-dark fw-bold tracking-tight mb-1">
+                <i class="bi bi-pie-chart-fill text-indigo" style="color: #4f46e5;"></i> Аналитика финансов
+            </h2>
+            <p class="text-muted small mb-0">Интерактивные отчеты и структура ваших денежных потоков</p>
+        </div>
+        <div class="btn-group shadow-fintech" role="group">
+            <button type="button" class="btn btn-fintech-outline py-2 px-3 fs-14 transition-all d-flex align-items-center gap-2" id="bar-btn">
                 <i class="bi bi-bar-chart-steps"></i> Столбцы
             </button>
-            <button type="button" class="btn btn-outline-primary" id="pie-btn">
+            <button type="button" class="btn btn-fintech-outline py-2 px-3 fs-14 transition-all d-flex align-items-center gap-2" id="pie-btn">
                 <i class="bi bi-donut-chart"></i> Круг
             </button>
         </div>
     </div>
 
+    <!-- Блок верхних карточек с поддержкой динамических трендов -->
     <div class="row mb-4 g-3 px-3">
-        <!-- Карточка: Всего -->
+        <!-- Карточка 1: Общий оборот -->
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm bg-primary text-white h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="small mb-0 opacity-75">Общая сумма</h6>
-                        <i class="bi bi-wallet2 fs-4"></i>
+            <div class="card border-0 shadow-fintech text-white h-100 overflow-hidden position-relative" style="background: var(--primary-gradient);">
+                <div class="card-bg-decoration dec-form-1"></div>
+                <div class="card-bg-decoration dec-form-2"></div>
+                <div class="card-body position-relative z-index-1 d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fs-13 mb-0 text-white-50 tracking-wider text-uppercase">Общий оборот</h6>
+                        <i class="bi bi-wallet2 fs-4 opacity-75"></i>
                     </div>
-                    <h3 class="mb-0 fw-bold">{{ metrics.total_sum|floatformat:0 }} ₽</h3>
-                </div>
-            </div>
-        </div>
-
-        <!-- Карточка: Топ категория -->
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="small mb-0 text-muted">Топ категория</h6>
-                        <i class="bi bi-trophy text-warning fs-4"></i>
-                    </div>
-                    <h4 class="mb-0 text-truncate" title="{{ metrics.top_category.category__name }}">
-                        {% if metrics.top_category %}
-                            {{ metrics.top_category.category__name }}
-                        {% else %}
-                            —
+                    <div>
+                        <h2 class="mb-0 fw-bold tracking-tight">{{ metrics.total_sum|floatformat:0 }} ₽</h2>
+                        {% if metrics.sum_trend is not None %}
+                            <div class="fs-12 mt-1 fw-medium {{ metrics.sum_trend_color }}">
+                                <i class="bi bi-arrow-{% if metrics.sum_trend > 0 %}up-right{% else %}down-left{% endif %}"></i>
+                                {% if metrics.sum_trend > 0 %}+{% endif %}{{ metrics.sum_trend|floatformat:1 }}%
+                                <span class="text-white-50 ms-1">vs прошлый период</span>
+                            </div>
                         {% endif %}
-                    </h4>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Карточка: Средний чек -->
+        <!-- Карточка 2: Тoп категория -->
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="small mb-0 text-muted">Средний чек</h6>
-                        <i class="bi bi-calculator text-info fs-4"></i>
+            <div class="card border-0 shadow-fintech h-100 bg-white">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fs-13 mb-0 text-muted-light tracking-wider text-uppercase">Топ категория</h6>
+                        <div class="icon-glow-primary" style="background: rgba(245, 158, 11, 0.08); color: #f59e0b;">
+                            <i class="bi bi-trophy-fill fs-5"></i>
+                        </div>
                     </div>
-                    <h3 class="mb-0 fw-bold text-dark">{{ metrics.avg_check|floatformat:0 }} ₽</h3>
+                    <div>
+                        <h4 class="mb-0 fw-bold text-dark text-truncate tracking-tight" title="{{ metrics.top_category.category__name }}">
+                            {% if metrics.top_category %}
+                                {{ metrics.top_category.category__name }}
+                            {% else %}
+                                <span class="text-muted fw-normal">—</span>
+                            {% endif %}
+                        </h4>
+                        {% if metrics.top_category %}
+                            <span class="fs-12 text-muted">{{ metrics.top_category.total|floatformat:0 }} ₽ потрачено</span>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Карточка: Количество -->
+        <!-- Карточка 3: Средний чек -->
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="small mb-0 text-muted">Транзакций</h6>
-                        <i class="bi bi-hash text-secondary fs-4"></i>
+            <div class="card border-0 shadow-fintech h-100 bg-white">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fs-13 mb-0 text-muted-light tracking-wider text-uppercase">Средний чек</h6>
+                        <div class="icon-glow-primary" style="background: rgba(6, 182, 212, 0.08); color: #06b6d4;">
+                            <i class="bi bi-calculator-fill fs-5"></i>
+                        </div>
                     </div>
-                    <h3 class="mb-0 fw-bold text-dark">{{ metrics.total_count }}</h3>
+                    <div>
+                        <h2 class="mb-0 fw-bold text-dark tracking-tight">{{ metrics.avg_check|floatformat:0 }} ₽</h2>
+                        {% if metrics.avg_check_trend is not None %}
+                            <div class="fs-12 mt-1 fw-semibold {{ metrics.avg_trend_color }}">
+                                <i class="bi bi-arrow-{% if metrics.avg_check_trend > 0 %}up{% else %}down{% endif %}"></i>
+                                {% if metrics.avg_check_trend > 0 %}+{% endif %}{{ metrics.avg_check_trend|floatformat:1 }}%
+                                <span class="text-muted fw-normal ms-1">vs прошлый период</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Карточка 4: Всего операций -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-fintech h-100 bg-white">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fs-13 mb-0 text-muted-light tracking-wider text-uppercase">Всего операций</h6>
+                        <div class="icon-glow-primary">
+                            <i class="bi bi-hash fs-4"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="mb-0 fw-bold text-dark tracking-tight">{{ metrics.total_count }}</h2>
+                        {% if metrics.count_trend is not None %}
+                            <div class="fs-12 mt-1 fw-semibold {{ metrics.count_trend_color }}">
+                                <i class="bi bi-arrow-{% if metrics.count_trend > 0 %}up{% else %}down{% endif %}"></i>
+                                {% if metrics.count_trend > 0 %}+{% endif %}{{ metrics.count_trend|floatformat:1 }}%
+                                <span class="text-muted fw-normal ms-1">vs прошлый период.</span>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row g-4">
-        <!-- Левая колонка: Фильтры -->
+    <!-- Основная рабочая область с фильтрами и графиком -->
+    <div class="row g-4 px-3">
         <div class="col-md-4 col-lg-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-light fw-bold py-3">
-                    <i class="bi bi-funnel"></i> Параметры отчета
+            <div class="card shadow-fintech border-0 bg-white rounded-4 overflow-hidden">
+                <div class="card-header bg-light-soft fw-bold py-3 border-bottom border-light text-dark fs-15">
+                    <i class="bi bi-funnel-fill text-indigo me-2"></i> Параметры отчета
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     <form method="get" id="filter-form">
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted">Период</label>
-                            <!-- id для захвата в JS -->
-                            <div id="period-select-wrapper">
+                            <label class="form-label fs-12 fw-bold text-uppercase tracking-wider text-muted">Счет / Кошелек</label>
+                            <div class="fintech-input-group d-flex align-items-center px-2">
+                                <span class="input-group-text bg-transparent"><i class="bi bi-wallet2"></i></span>
+                                {{ form.wallet }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fs-12 fw-bold text-uppercase tracking-wider text-muted">Временной период</label>
+                            <div class="fintech-input-group d-flex align-items-center px-2" id="period-select-wrapper">
+                                <span class="input-group-text bg-transparent"><i class="bi bi-calendar3"></i></span>
                                 {{ form.period }}
                             </div>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted">Тип операций</label>
-                            {{ form.operation_type }}
+                            <label class="form-label fs-12 fw-bold text-uppercase tracking-wider text-muted">Тип операций</label>
+                            <div class="fintech-input-group d-flex align-items-center px-2">
+                                <span class="input-group-text bg-transparent"><i class="bi bi-arrow-left-right"></i></span>
+                                {{ form.operation_type }}
+                            </div>
                         </div>
 
                         <div id="custom-date-range" class="row g-2 mb-3" style="display: none;">
                             <div class="col-6">
-                                <label class="form-label small fw-bold text-muted">С даты</label>
-                                {{ form.date_from }}
+                                <label class="form-label fs-12 fw-bold text-uppercase tracking-wider text-muted">С даты</label>
+                                <div class="fintech-input-group p-1">{{ form.date_from }}</div>
                             </div>
                             <div class="col-6">
-                                <label class="form-label small fw-bold text-muted">По дату</label>
-                                {{ form.date_to }}
+                                <label class="form-label fs-12 fw-bold text-uppercase tracking-wider text-muted">По дату</label>
+                                <div class="fintech-input-group p-1">{{ form.date_to }}</div>
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted">Категории</label>
-                            <div class="list-group list-group-flush border rounded max-h-300 overflow-auto custom-scrollbar">
+                        <div class="mb-4">
+                            <label class="form-label fs-12 fw-bold text-uppercase tracking-wider text-muted">Категории</label>
+                            <div class="list-group list-group-flush border rounded-3 max-h-300 overflow-auto custom-scrollbar bg-light-soft">
                                 {% for category in form.category.field.queryset %}
-                                    <label class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-2">
-                                        <input type="checkbox" class="form-check-input"
+                                    <label class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-2 border-0 bg-transparent">
+                                        <input type="checkbox" class="form-check-input transition-all"
                                                name="{{ form.category.name }}"
                                                value="{{ category.pk }}"
-                                               {% if category.pk|stringformat:'s' in form.category.value %}checked{% endif %}>
-                                        <span class="small">{{ category.name }}</span>
+                                               {% if category.pk|stringformat:'s' in form.category.value %}checked{% endif %}
+                                               style="cursor:pointer;">
+                                        <span class="fs-14 text-dark fw-medium">{{ category.name }}</span>
                                     </label>
                                 {% endfor %}
                             </div>
                         </div>
 
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-primary shadow-sm">Применить</button>
-                            <a href="{% url 'analytics' %}" class="btn btn-link btn-sm text-muted">Сбросить фильтры</a>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-fintech-primary text-white py-2.5 rounded-3 fw-bold fs-14 shadow-sm transition-all">
+                                Сформировать отчет
+                            </button>
+                            <a href="{% url 'analytics' %}" class="btn btn-link btn-sm text-muted text-decoration-none fs-13 transition-all">
+                                <i class="bi bi-x-circle"></i> Сбросить фильтры
+                            </a>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        <!-- Правая колонка: График -->
         <div class="col-md-8 col-lg-9">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-                    <h5 class="mb-0 text-secondary" id="chart-title">Визуализация</h5>
-                    <span class="badge bg-success fs-6 p-2 shadow-sm" id="total-amount">0 ₽</span>
+            <div class="card shadow-fintech border-0 bg-white rounded-4 h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 border-bottom border-light flex-wrap gap-2">
+                    <h5 class="mb-0 fw-bold text-dark tracking-tight" id="chart-title">Визуализация распределения</h5>
+
+                    <!-- Переключатель типа анализа: Категории vs Временная шкала -->
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="nav-fintech-toggle p-1 bg-light-soft rounded-3 d-flex" style="border: 1px solid #e2e8f0;">
+                            <button type="button" class="btn btn-sm py-1.5 px-3 rounded-2 fs-13 fw-semibold transition-all border-0 active-toggle-btn" id="view-categories-btn">
+                                <i class="bi bi-tags-fill me-1"></i> Категории
+                            </button>
+                            <button type="button" class="btn btn-sm py-1.5 px-3 rounded-2 fs-13 fw-semibold transition-all border-0 text-muted" id="view-timeline-btn">
+                                <i class="bi bi-graph-up text-indigo me-1"></i> Динамика трат
+                            </button>
+                        </div>
+                        <span class="badge fs-14 p-2 px-3 shadow-sm text-white fw-bold border-0 rounded-pill" id="total-amount" style="background: var(--primary-gradient);">0 ₽</span>
+                    </div>
                 </div>
-                <div class="card-body d-flex flex-column justify-content-center position-relative">
+                <div class="card-body d-flex flex-column justify-content-center position-relative p-4">
                     <div id="no-data" class="text-center py-5 d-none">
-                        <i class="bi bi-graph-down-arrow display-1 text-light"></i>
-                        <h4 class="text-muted mt-3">Данных пока нет</h4>
-                        <p class="text-muted small">Попробуйте изменить фильтры</p>
+                        <div class="mb-3 text-muted opacity-20">
+                            <i class="bi bi-graph-down-arrow" style="font-size: 5rem;"></i>
+                        </div>
+                        <h4 class="text-dark fw-bold mb-1">Данных пока нет</h4>
+                        <p class="text-muted small">Попробуйте расширить диапазон дат или изменить критерии фильтрации.</p>
                     </div>
 
-                    <div class="chart-container" id="chart-wrapper" style="position: relative; height:450px; width:100%">
+                    <!-- Контейнер для графика категорий -->
+                    <div class="chart-container" id="chart-wrapper" style="position: relative; height:430px; width:100%">
                         <canvas id="analyticsChart"></canvas>
+                    </div>
+
+                    <!-- Контейнер для линейного графика динамики -->
+                    <div class="chart-container d-none" id="timeline-wrapper" style="position: relative; height:430px; width:100%">
+                        <canvas id="timelineChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -158,54 +239,54 @@
     </div>
 </div>
 
-<!-- Список транзакций под графиком -->
-<div class="row mt-4 px-3 pb-5">
+<!-- Детализация операций -->
+<div class="row mt-5 px-3 pb-5" id="details">
     <div class="col-12">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 text-secondary"><i class="bi bi-list-ul"></i> Детализация операций</h5>
-                <span class="badge bg-light text-dark border">{{ user_transactions.count }} записей</span>
+        <div class="card shadow-fintech border-0 bg-white rounded-4 overflow-hidden">
+            <div class="card-header bg-white py-3 border-bottom border-light d-flex justify-content-between align-items-center px-4">
+                <h5 class="mb-0 fw-bold text-dark tracking-tight"><i class="bi bi-list-ul text-indigo me-1"></i> Детализация операций</h5>
+                <span class="badge bg-light text-muted border px-3 py-2 fs-12 fw-medium rounded-pill">{{ user_transactions.count }} записей</span>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
+                        <thead class="table-light bg-light-soft border-bottom">
                             <tr>
-                                <th class="ps-4">Дата</th>
-                                <th>Категория</th>
-                                <th>Счет</th>
-                                <th>Описание</th>
-                                <th class="text-end pe-4">Сумма</th>
+                                <th class="ps-4 fs-12 text-muted-light text-uppercase tracking-wider py-3">Дата</th>
+                                <th class="fs-12 text-muted-light text-uppercase tracking-wider py-3">Категория</th>
+                                <th class="fs-12 text-muted-light text-uppercase tracking-wider py-3">Счет / Кошелек</th>
+                                <th class="fs-12 text-muted-light text-uppercase tracking-wider py-3">Описание</th>
+                                <th class="text-end pe-4 fs-12 text-muted-light text-uppercase tracking-wider py-3">Сумма</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for transaction in user_transactions %}
-                            <tr>
-                                <td class="ps-4 small text-muted">
+                            <tr class="transition-all">
+                                <td class="ps-4 fs-14 text-dark fw-medium">
                                     {{ transaction.date|date:"d.m.Y" }}
                                 </td>
                                 <td>
-                                    <span class="badge rounded-pill bg-light text-dark border fw-normal">
+                                    <span class="badge rounded-pill bg-light text-dark border fw-medium px-3 py-1.5 fs-13">
                                         {{ transaction.category.name }}
                                     </span>
                                 </td>
                                 <td>
-                                    <small class="text-muted">{{ transaction.wallet.name }}</small>
+                                    <span class="fs-14 text-secondary fw-medium"><i class="bi bi-wallet2 me-1 fs-13"></i> {{ transaction.wallet.name }}</span>
                                 </td>
                                 <td>
-                                    <span class="text-truncate d-inline-block" style="max-width: 250px;">
+                                    <span class="text-truncate d-inline-block text-muted fs-14" style="max-width: 280px;" title="{{ transaction.description }}">
                                         {{ transaction.description|default:"—" }}
                                     </span>
                                 </td>
-                                <td class="text-end pe-4 fw-bold {% if transaction.operation_type == 'expense' %}text-danger{% else %}text-success{% endif %}">
-                                    {% if transaction.operation_type == 'expense' %}-{% else %}+{% endif %}
-                                    {{ transaction.total|floatformat:2 }} ₽
+                                <td class="text-end pe-4 fw-bold fs-15 {% if transaction.operation_type == 'expense' %}text-danger{% else %}text-success{% endif %}">
+                                    {% if transaction.operation_type == 'expense' %}-{% else %}+{% endif %}{{ transaction.total|floatformat:2 }} ₽
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">
-                                    Нет данных за выбранный период
+                                <td colspan="5" class="text-center py-5 text-muted-light fs-14">
+                                    <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
+                                    Нет записей по выбранным критериям
                                 </td>
                             </tr>
                             {% endfor %}
@@ -217,12 +298,39 @@
     </div>
 </div>
 
-
 <style>
     .max-h-300 { max-height: 300px; }
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #dee2e6; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     .chart-container { transition: opacity 0.3s ease; }
+    .text-indigo { color: #4f46e5; }
+
+    .btn-group .btn.active {
+        background: var(--primary-gradient) !important;
+        color: #ffffff !important;
+        border-color: transparent !important;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2) !important;
+    }
+
+    .form-select-fintech {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+        background-repeat: no-repeat !important;
+        background-position: right 1rem center !important;
+        background-size: 14px 14px !important;
+        padding-right: 2.5rem !important;
+        cursor: pointer;
+    }
+
+    /* Навигационный переключатель видов аналитики */
+    .nav-fintech-toggle .btn { background: transparent; color: #64748b; }
+    .nav-fintech-toggle .btn.active-toggle-btn {
+        background: #ffffff !important;
+        color: #4f46e5 !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -232,81 +340,105 @@
     document.addEventListener("DOMContentLoaded", function () {
         Chart.register(ChartDataLabels);
 
+        // Инжектим кастомные классы премиум-темы FinMate в Джанго-форму динамически
         document.querySelectorAll('#filter-form select, #filter-form input[type="text"], #filter-form input[type="date"]').forEach(el => {
-            el.classList.add('form-control', 'form-control-sm');
+            if (el.tagName === 'SELECT') {
+                el.classList.add('form-select-fintech', 'w-100');
+            } else {
+                el.classList.add('form-control-fintech', 'w-100');
+            }
         });
 
-        const ctx = document.getElementById('analyticsChart').getContext('2d');
-        const rawData = JSON.parse('{{ chart_data|safe }}');
+        const ctxCat = document.getElementById('analyticsChart').getContext('2d');
+        const ctxTime = document.getElementById('timelineChart').getContext('2d');
+
+        // Чтение данных из Django Context
+        const rawCatData = JSON.parse('{{ chart_data|safe }}');
+        const rawTimeData = JSON.parse('{{ chart_timeline|safe }}');
+
+        // DOM элементы управления
         const barBtn = document.getElementById('bar-btn');
         const pieBtn = document.getElementById('pie-btn');
+        const viewCategoriesBtn = document.getElementById('view-categories-btn');
+        const viewTimelineBtn = document.getElementById('view-timeline-btn');
+
         const chartTitle = document.getElementById('chart-title');
         const totalAmount = document.getElementById('total-amount');
         const noDataBlock = document.getElementById('no-data');
         const chartWrapper = document.getElementById('chart-wrapper');
-        let myChart;
+        const timelineWrapper = document.getElementById('timeline-wrapper');
+        const displayTypeGroup = document.querySelector('.btn-group[role="group"]');
 
+        let catChart;
+        let timeChart;
+        let activeTab = 'categories';
+
+        // Управление блоком кастомных дат в форме
         const periodSelect = document.querySelector('select[name="period"]');
-const customDateRange = document.getElementById('custom-date-range');
+        const customDateRange = document.getElementById('custom-date-range');
 
-function toggleCustomDates() {
-    if (periodSelect.value === 'custom') {
-        customDateRange.style.display = 'flex';
-    } else {
-        customDateRange.style.display = 'none';
-        customDateRange.querySelectorAll('input').forEach(input => input.value = '');
-    }
-}
-
-if (periodSelect) {
-    periodSelect.addEventListener('change', toggleCustomDates);
-    // Вызываем сразу при загрузке, чтобы проверить текущее состояние
-    toggleCustomDates();
-}
-
-        if (window.location.hash === "#details") {
-        const detailsElement = document.getElementById('details');
-        if (detailsElement) {
-            // Плавная прокрутка с небольшим отступом сверху (чтобы заголовок не прилипал к краю)
-            const yOffset = -20;
-            const y = detailsElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
-            window.scrollTo({top: y, behavior: 'smooth'});
+        function toggleCustomDates() {
+            if (periodSelect && periodSelect.value === 'custom') {
+                customDateRange.style.display = 'flex';
+            } else {
+                customDateRange.style.display = 'none';
+                customDateRange.querySelectorAll('input').forEach(input => input.value = '');
+            }
         }
-    }
+        if (periodSelect) {
+            periodSelect.addEventListener('change', toggleCustomDates);
+            toggleCustomDates();
+        }
 
-        if (!rawData || rawData.length === 0) {
+        // Хэш-скролл к детализации операций
+        if (window.location.hash === "#details") {
+            const detailsElement = document.getElementById('details');
+            if (detailsElement) {
+                const yOffset = -20;
+                const y = detailsElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                window.scrollTo({top: y, behavior: 'smooth'});
+            }
+        }
+
+        // Проверка наличия данных
+        if (!rawCatData || rawCatData.length === 0) {
             chartWrapper.classList.add('d-none');
+            timelineWrapper.classList.add('d-none');
+            displayTypeGroup.classList.add('opacity-0');
             noDataBlock.classList.remove('d-none');
+            totalAmount.textContent = `Итого: 0 ₽`;
             return;
         }
 
-        const total = rawData.reduce((sum, item) => sum + item.total, 0);
-        totalAmount.textContent = `Итого: ${total.toLocaleString()} ₽`;
+        const total = rawCatData.reduce((sum, item) => sum + item.total, 0);
+        totalAmount.textContent = `Итого: ${total.toLocaleString('ru-RU')} ₽`;
 
-        const colors = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#6f42c1', '#fd7e14'];
+        const fintechColors = ['#4f46e5', '#10b981', '#06b6d4', '#f59e0b', '#ef4444', '#8b5cf6', '#f97316'];
 
-        function createChart(type) {
-            if (myChart) myChart.destroy();
+        // ФУНКЦИЯ 1: Создание графика категорий (Круг / Столбцы)
+        function createCategoryChart(type) {
+            if (catChart) catChart.destroy();
 
             const isPie = type === 'pie';
-            chartTitle.textContent = isPie ? 'Распределение по категориям' : 'Сравнение расходов';
+            if (activeTab === 'categories') {
+                chartTitle.textContent = isPie ? 'Структура по категориям' : 'Сравнение объемов по категориям';
+            }
 
-            // Визуальное переключение кнопок
             barBtn.classList.toggle('active', type === 'bar');
             pieBtn.classList.toggle('active', type === 'pie');
             localStorage.setItem('analyticsChartType', type);
 
-            myChart = new Chart(ctx, {
+            catChart = new Chart(ctxCat, {
                 type: isPie ? 'doughnut' : 'bar',
                 data: {
-                    labels: rawData.map(item => item.category),
+                    labels: rawCatData.map(item => item.category),
                     datasets: [{
                         label: 'Сумма',
-                        data: rawData.map(item => item.total),
-                        backgroundColor: isPie ? colors : 'rgba(78, 115, 223, 0.8)',
-                        borderColor: isPie ? '#fff' : '#4e73df',
-                        borderWidth: isPie ? 2 : 1,
-                        borderRadius: isPie ? 0 : 6,
+                        data: rawCatData.map(item => item.total),
+                        backgroundColor: isPie ? fintechColors : 'rgba(79, 70, 229, 0.85)',
+                        borderColor: isPie ? '#ffffff' : '#4f46e5',
+                        borderWidth: isPie ? 3 : 1,
+                        borderRadius: isPie ? 0 : 8,
                         hoverOffset: isPie ? 15 : 0
                     }]
                 },
@@ -314,29 +446,160 @@ if (periodSelect) {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: isPie, position: 'bottom' },
+                        legend: {
+                            display: isPie,
+                            position: 'bottom',
+                            labels: { boxWidth: 12, padding: 20, font: { family: 'Inter', size: 13, weight: '500' }, color: '#334155' }
+                        },
                         datalabels: {
                             display: isPie,
-                            color: '#fff',
-                            font: { weight: 'bold' },
-                            formatter: (value) => Math.round(value / total * 100) + '%'
+                            color: '#ffffff',
+                            font: { family: 'Inter', weight: 'bold', size: 12 },
+                            formatter: (value) => {
+                                if((value / total * 100) < 4) return '';
+                                return Math.round(value / total * 100) + '%';
+                            }
                         },
                         tooltip: {
-                            callbacks: {
-                                label: (context) => ` ${context.raw.toLocaleString()} ₽`
-                            }
+                            backgroundColor: '#1e293b',
+                            padding: 12,
+                            titleFont: { family: 'Inter', size: 13 },
+                            bodyFont: { family: 'Inter', size: 14, weight: 'bold' },
+                            callbacks: { label: (context) => ` ${context.raw.toLocaleString('ru-RU')} ₽` }
                         }
                     },
-                    scales: isPie ? {} : { y: { beginAtZero: true } }
+                    scales: isPie ? {} : {
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Inter' }, color: '#64748b' } },
+                        x: { grid: { display: false }, ticks: { font: { family: 'Inter', weight: '500' }, color: '#334155' } }
+                    }
                 }
             });
         }
 
-        let savedType = localStorage.getItem('analyticsChartType') || 'pie';
-        createChart(savedType);
+        // ФУНКЦИЯ 2: Создание линейного графика динамики времени (Spline Area Chart)
+        function createTimelineChart() {
+    if (timeChart) {
+        timeChart.destroy();
+    }
 
-        barBtn.addEventListener('click', () => createChart('bar'));
-        pieBtn.addEventListener('click', () => createChart('pie'));
+    const gradient = ctxTime.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(79, 70, 229, 0.25)');
+    gradient.addColorStop(1, 'rgba(79, 70, 229, 0.00)');
+
+    timeChart = new Chart(ctxTime, {
+        type: 'line',
+        data: {
+            labels: rawTimeData.map(item => item.date),
+            datasets: [{
+                label: 'Интенсивность операций',
+                data: rawTimeData.map(item => item.total),
+                borderColor: '#4f46e5',
+                borderWidth: 3,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#4f46e5',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                tension: 0.35,
+                fill: true,
+                backgroundColor: gradient
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                datalabels: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    padding: 12,
+                    titleFont: {
+                        family: 'Inter'
+                    },
+                    bodyFont: {
+                        family: 'Inter',
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    callbacks: {
+                        label: (context) =>
+                            ` Оборот: ${context.raw.toLocaleString('ru-RU')} ₽`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: '#f1f5f9'
+                    },
+                    ticks: {
+                        font: {
+                            family: 'Inter'
+                        },
+                        color: '#64748b'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            family: 'Inter'
+                        },
+                        color: '#334155',
+                        maxRotation: 45,
+                        minRotation: 0
+                    }
+                }
+            }
+        }
+    });
+}
+
+        // Логика переключения табов
+        viewCategoriesBtn.addEventListener('click', () => {
+            activeTab = 'categories';
+            viewCategoriesBtn.classList.add('active-toggle-btn');
+            viewTimelineBtn.classList.remove('active-toggle-btn');
+            viewTimelineBtn.classList.add('text-muted');
+
+            timelineWrapper.classList.add('d-none');
+            chartWrapper.classList.remove('d-none');
+            displayTypeGroup.classList.remove('opacity-0');
+            displayTypeGroup.style.pointerEvents = 'auto';
+
+            let currentSavedType = localStorage.getItem('analyticsChartType') || 'pie';
+            chartTitle.textContent = currentSavedType === 'pie' ? 'Структура по категориям' : 'Сравнение объемов по категориям';
+        });
+
+        viewTimelineBtn.addEventListener('click', () => {
+            activeTab = 'timeline';
+            viewTimelineBtn.classList.add('active-toggle-btn');
+            viewTimelineBtn.classList.remove('text-muted');
+            viewCategoriesBtn.classList.remove('active-toggle-btn');
+
+            chartWrapper.classList.add('d-none');
+            timelineWrapper.classList.remove('d-none');
+            displayTypeGroup.classList.add('opacity-0');
+            displayTypeGroup.style.pointerEvents = 'none';
+
+            chartTitle.textContent = 'Хронология и пики активности';
+            createTimelineChart();
+        });
+
+        // Инициализация при первой загрузке страницы
+        let savedType = localStorage.getItem('analyticsChartType') || 'pie';
+        createCategoryChart(savedType);
+
+        barBtn.addEventListener('click', () => { if(activeTab === 'categories') createCategoryChart('bar'); });
+        pieBtn.addEventListener('click', () => { if(activeTab === 'categories') createCategoryChart('pie'); });
     });
 </script>
 {% endblock %}

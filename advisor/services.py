@@ -11,7 +11,7 @@ from django.utils import timezone
 from advisor.models import SavingGoal, GoalContribution
 from notifications.models import Notification
 from notifications.services import NotificationsService
-from personal_finance.models import PersonalTransaction, OperationType, Wallet, Category
+from personal_finance.models import PersonalTransaction, OperationType, Wallet, Category, CategoryLimit
 
 
 @dataclass
@@ -32,8 +32,8 @@ class GoalAdvice:
 
 @dataclass
 class WhatIfScenario:
-    expense_cut_percent: int
-    income_raise_percent: int
+    expense_cut_amount: Decimal  # Сумма, на которую уменьшим расходы
+    income_raise_amount: Decimal  # Сумма, на которую увеличим доход
     simulated_free_cashflow_per_month: Decimal
     simulated_gap_per_month: Decimal
     simulated_projected_target_date: date | None
@@ -107,22 +107,26 @@ class AdvisorService:
 
     @staticmethod
     def build_what_if(
-        *,
-        advice: GoalAdvice,
-        expense_cut_percent: int = 0,
-        income_raise_percent: int = 0,
+            *,
+            advice: GoalAdvice,
+            expense_cut_amount: Decimal = Decimal("0.00"),
+            income_raise_amount: Decimal = Decimal("0.00"),
     ) -> WhatIfScenario:
-        expense_cut_percent = max(0, min(90, int(expense_cut_percent or 0)))
-        income_raise_percent = max(0, min(300, int(income_raise_percent or 0)))
+        # Приводим к Decimal, если пришли строки из формы, и страхуемся от отрицательных чисел
+        expense_cut = Decimal(str(expense_cut_amount or "0.00")).quantize(Decimal("0.01"))
+        income_raise = Decimal(str(income_raise_amount or "0.00")).quantize(Decimal("0.01"))
 
-        expense_multiplier = Decimal("1.00") - (Decimal(expense_cut_percent) / Decimal("100"))
-        income_multiplier = Decimal("1.00") + (Decimal(income_raise_percent) / Decimal("100"))
+        # Новые симулируемые показатели
+        # Расходы не могут стать меньше нуля (ограничиваем снизу)
+        simulated_expense = max(Decimal("0.00"), advice.avg_expense_per_month - expense_cut)
+        simulated_income = advice.avg_income_per_month + income_raise
 
-        simulated_expense = (advice.avg_expense_per_month * expense_multiplier).quantize(Decimal("0.01"))
-        simulated_income = (advice.avg_income_per_month * income_multiplier).quantize(Decimal("0.01"))
         simulated_cashflow = (simulated_income - simulated_expense).quantize(Decimal("0.01"))
+
+        # Считаем разрыв: сколько не хватает до обязательного ежемесячного платежа
         simulated_gap = (advice.required_per_month - simulated_cashflow).quantize(Decimal("0.01"))
 
+        # Прогноз даты при новых условиях
         simulated_date = AdvisorService._project_target_date(
             today=timezone.now().date(),
             remaining=advice.remaining_amount,
@@ -130,8 +134,8 @@ class AdvisorService:
         )
 
         return WhatIfScenario(
-            expense_cut_percent=expense_cut_percent,
-            income_raise_percent=income_raise_percent,
+            expense_cut_amount=expense_cut,
+            income_raise_amount=income_raise,
             simulated_free_cashflow_per_month=simulated_cashflow,
             simulated_gap_per_month=simulated_gap,
             simulated_projected_target_date=simulated_date,
@@ -400,3 +404,68 @@ class AdvisorService:
             )
 
             return contribution
+
+    @staticmethod
+    def notify_limit_control(*, user) -> int:
+        """
+        Сканирует лимиты пользователя за текущий месяц.
+        Генерирует уведомления при превышении 85% и 100% лимита.
+        """
+        today = timezone.now().date()
+        # Вычисляем первый день текущего месяца для агрегации расходов
+        first_day_of_month = today.replace(day=1)
+        created_count = 0
+
+        # Получаем все активные лимиты пользователя
+        active_limits = CategoryLimit.objects.filter(user=user, is_active=True).select_related('category')
+
+        for limit in active_limits:
+            # Считаем сумму расходов по данной категории за текущий месяц
+            spent = PersonalTransaction.objects.filter(
+                user=user,
+                category=limit.category,
+                operation_type=OperationType.EXPENSE,
+                date__gte=first_day_of_month,
+                date__lte=today  # Если в базе есть будущие даты
+            ).aggregate(total=Sum("total")).get("total") or Decimal("0.00")
+
+            if limit.amount <= 0:
+                continue
+
+            # Вычисляем процент израсходованного лимита
+            usage_percent = (spent / limit.amount) * Decimal("100.00")
+
+            # Логика алертов
+            if usage_percent >= 100:
+                verb_text = f"Критический перерасход: лимит по категории «{limit.category.name}» исчерпан на {usage_percent:.0f}%"
+                alert_prefix = "Превышение лимита:"
+            elif usage_percent >= 85:
+                verb_text = f"Внимание: вы израсходовали {usage_percent:.0f}% лимита по категории «{limit.category.name}»"
+                alert_prefix = "Предупреждение по лимиту:"
+            else:
+                continue  # Всё в порядке, лимит не превышен
+
+            # Защита от спама: проверяем, отправляли ли мы такое уведомление СЕГОДНЯ
+            already_exists = Notification.objects.filter(
+                recipient=user,
+                actor=user,
+                content_type__model="categorylimit",
+                object_id=limit.id,
+                created_at__date=today,
+                verb__startswith=alert_prefix,
+            ).exists()
+
+            if already_exists:
+                continue
+
+            # Создаем уведомление через твой NotificationsService
+            NotificationsService.create_notification(
+                actor=user,
+                recipient=user,
+                verb=verb_text,
+                content_obj=limit,
+                allow_self=True,
+            )
+            created_count += 1
+
+        return created_count
