@@ -195,14 +195,13 @@ class FinanceService:
             if not old_wallet or not target_wallet:
                 raise ValidationError("Кошелек недоступен")
 
-            # Проверяем нужно ли трогать баланс
             balance_changed = (
                     new_total is not None or
                     new_wallet is not None
             )
 
             if balance_changed:
-                # 1. ОТКАТ старой транзакции
+                # ОТКАТ старой транзакции
                 if transaction_obj.operation_type == OperationType.EXPENSE:
                     Wallet.objects.filter(id=old_wallet.id).update(
                         balance=F("balance") + old_total
@@ -240,13 +239,11 @@ class FinanceService:
             if new_description is not None:
                 transaction_obj.description = new_description
 
-            # ПРИМЕНЕНИЕ новой транзакции
             if balance_changed:
                 new_total_value = transaction_obj.total
 
                 if transaction_obj.operation_type == OperationType.EXPENSE:
 
-                    # Проверка баланса (только для дебетового)
                     if (
                             target_wallet.wallet_type == Wallet.WalletType.DEBET and
                             target_wallet.balance < new_total_value
@@ -264,7 +261,6 @@ class FinanceService:
                         balance=F("balance") + new_total_value
                     )
 
-            # 💾 Сохраняем транзакцию
             transaction_obj.save()
 
             return transaction_obj
@@ -378,7 +374,6 @@ class FinanceService:
     @staticmethod
     def create_category(*, user, name, category_type):
         with transaction.atomic():
-            # Используем менеджер for_user, чтобы не плодить дубликаты системных имен
             if Category.objects.for_user(user=user).filter(name=name, category_type=category_type).exists():
                 raise ValidationError(f"Категория '{name}' уже существует.")
 
@@ -392,7 +387,6 @@ class FinanceService:
     @staticmethod
     def update_category(*, category_obj, user, name=None, new_type=None):
         with transaction.atomic():
-            # 1. ИСПРАВЛЕНО: ищем через for_user, чтобы подтянуть и системные категории тоже
             category = (Category.objects.for_user(user=user)
                         .select_for_update()
                         .filter(id=category_obj.id, is_active=True)
@@ -401,18 +395,14 @@ class FinanceService:
             if not category:
                 raise ValidationError("Категория не найдена или недоступна.")
 
-            # 2. ИСПРАВЛЕНО: Умная обработка системных категорий
             if category.user is None:
                 # Если имя или тип РЕАЛЬНО отличаются от системных — это попытка взлома/ошибки
                 if (name is not None and name != category.name) or (
                         new_type is not None and new_type != category.category_type):
                     raise ValidationError("Нельзя изменять название или тип системных категорий.")
 
-                # Если данные те же (пришли из disabled полей формы), просто возвращаем её.
-                # Изменением лимита займется контроллер.
                 return category
 
-            # 3. Логика для обычных пользовательских категорий
             target_name = name if name is not None else category.name
             target_type = new_type if new_type is not None else category.category_type
 
@@ -435,7 +425,6 @@ class FinanceService:
     @staticmethod
     def delete_category(*, category_obj, user):
         with transaction.atomic():
-            # ИСПРАВЛЕНО: для единообразия и безопасности тоже используем for_user
             category = (Category.objects.for_user(user=user)
                         .select_for_update()
                         .filter(id=category_obj.id, is_active=True)
@@ -444,7 +433,6 @@ class FinanceService:
             if not category:
                 raise ValidationError("Категория не найдена или уже удалена.")
 
-            # Системную категорию пользователь удалить не сможет ни при каких условиях
             if category.user is None:
                 raise ValidationError("Нельзя удалить системную категорию.")
 

@@ -13,9 +13,12 @@ import os
 from pathlib import Path
 
 from django.conf.global_settings import AUTH_USER_MODEL, LOGOUT_REDIRECT_URL, MEDIA_ROOT
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")
 
 def env_bool(name: str, default: bool = False) -> bool:
     return os.getenv(name, str(default)).lower() in {"1", "true", "yes", "on"}
