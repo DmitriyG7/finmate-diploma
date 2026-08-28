@@ -18,7 +18,6 @@ class FinanceFormMixin:
     def apply_finance_styles(self):
         """Автоматически добавляет классы Bootstrap и маски"""
         for field_name, field in self.fields.items():
-            # Базовые классы
             if isinstance(field.widget, (forms.Select, forms.SelectMultiple)):
                 css_class = 'form-select'
             elif isinstance(field.widget, forms.CheckboxInput):
@@ -26,7 +25,6 @@ class FinanceFormMixin:
             else:
                 css_class = 'form-control'
 
-            # Добавляем маски на основе имени поля или типа
             if any(word in field_name for word in ['total', 'amount', 'balance']):
                 css_class += ' money-mask'
             if field_name in ['date', 'date_from', 'date_to'] or isinstance(field, forms.DateField):
@@ -178,8 +176,6 @@ class AddTransactionForm(FinanceFormMixin, forms.ModelForm):
             self.add_error('category', "Тип категории не совпадает с типом операции.")
 
         if self.instance and self.instance.pk:
-            # Проверяем, была ли у этой транзакции категория "Накопления" до изменения
-            # (или проверяем прилетевшую категорию)
             if self.instance.category and self.instance.category.name == "Накопления":
                 raise ValidationError(
                     "Эта транзакция создана автоматически финансовым советником. "
